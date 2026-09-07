@@ -37,68 +37,70 @@ export function NavBar() {
   const sections = NAV_SECTIONS.filter((section) => !section.adminOnly || user?.role === "Administrator");
 
   return (
-    <nav ref={navRef} className="relative flex h-11 items-center gap-1 border-b border-[var(--color-border)] bg-white px-4">
-      {sections.map((section) => {
-        const key = section.title ?? section.items[0].href;
-        const active = isSectionActive(section, pathname);
-        const Icon = section.icon;
+    <nav ref={navRef} className="relative flex h-11 border-b border-[var(--color-border)] bg-white px-4">
+      <div className="mx-auto flex w-full max-w-[1400px] items-center gap-1">
+        {sections.map((section) => {
+          const key = section.title ?? section.items[0].href;
+          const active = isSectionActive(section, pathname);
+          const Icon = section.icon;
 
-        if (section.items.length === 1 && !section.title) {
-          const item = section.items[0];
+          if (section.items.length === 1 && !section.title) {
+            const item = section.items[0];
+            return (
+              <Link
+                key={key}
+                href={item.href}
+                className={cn(
+                  "flex h-11 items-center gap-1.5 border-b-2 px-2.5 text-sm font-medium transition-colors",
+                  active ? "border-brand-500 text-brand-600" : "border-transparent text-[var(--color-muted)] hover:text-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2} />
+                {item.label}
+              </Link>
+            );
+          }
+
+          const isOpen = openSection === key;
           return (
-            <Link
-              key={key}
-              href={item.href}
-              className={cn(
-                "flex h-11 items-center gap-1.5 border-b-2 px-2.5 text-sm font-medium transition-colors",
-                active ? "border-brand-500 text-brand-600" : "border-transparent text-[var(--color-muted)] hover:text-foreground",
+            <div key={key} className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenSection(isOpen ? null : key)}
+                className={cn(
+                  "flex h-11 items-center gap-1.5 border-b-2 px-2.5 text-sm font-medium transition-colors",
+                  active ? "border-brand-500 text-brand-600" : "border-transparent text-[var(--color-muted)] hover:text-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2} />
+                {section.title}
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
+              </button>
+              {isOpen && (
+                <div className="absolute left-0 top-full z-20 mt-1 w-52 rounded-md border border-[var(--color-border)] bg-white py-1.5 shadow-lg">
+                  {section.items.map((item) => {
+                    const itemActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    const ItemIcon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-2.5 px-3 py-1.5 text-sm",
+                          itemActive ? "bg-brand-50 text-brand-700" : "text-foreground hover:bg-slate-50",
+                        )}
+                      >
+                        <ItemIcon className={cn("h-4 w-4", itemActive ? "text-brand-500" : "text-slate-400")} strokeWidth={2} />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
               )}
-            >
-              <Icon className="h-4 w-4" strokeWidth={2} />
-              {item.label}
-            </Link>
+            </div>
           );
-        }
-
-        const isOpen = openSection === key;
-        return (
-          <div key={key} className="relative">
-            <button
-              type="button"
-              onClick={() => setOpenSection(isOpen ? null : key)}
-              className={cn(
-                "flex h-11 items-center gap-1.5 border-b-2 px-2.5 text-sm font-medium transition-colors",
-                active ? "border-brand-500 text-brand-600" : "border-transparent text-[var(--color-muted)] hover:text-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4" strokeWidth={2} />
-              {section.title}
-              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
-            </button>
-            {isOpen && (
-              <div className="absolute left-0 top-full z-20 mt-1 w-52 rounded-md border border-[var(--color-border)] bg-white py-1.5 shadow-lg">
-                {section.items.map((item) => {
-                  const itemActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  const ItemIcon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-2.5 px-3 py-1.5 text-sm",
-                        itemActive ? "bg-brand-50 text-brand-700" : "text-foreground hover:bg-slate-50",
-                      )}
-                    >
-                      <ItemIcon className={cn("h-4 w-4", itemActive ? "text-brand-500" : "text-slate-400")} strokeWidth={2} />
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })}
+        })}
+      </div>
     </nav>
   );
 }

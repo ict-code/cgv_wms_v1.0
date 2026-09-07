@@ -24,7 +24,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col">
       <Topbar />
       <NavBar />
-      <main className="flex-1 overflow-x-auto p-6">{children}</main>
+      <main className="flex-1 overflow-x-auto p-4">
+        <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+      </main>
     </div>
   );
 }

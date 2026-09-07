@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import { Button } from "@/components/ui/button";
 
 export function Pagination({
@@ -28,7 +29,7 @@ export function Pagination({
       </p>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>
-          <ChevronLeft className="h-3.5 w-3.5" />
+          <ChevronLeftRounded className="h-3.5 w-3.5" />
           Prev
         </Button>
         <span className="text-xs text-slate-500">
@@ -36,7 +37,7 @@ export function Pagination({
         </span>
         <Button variant="outline" size="sm" onClick={() => onPageChange(page + 1)} disabled={page >= pageCount}>
           Next
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRightRounded className="h-3.5 w-3.5" />
         </Button>
       </div>
     </div>

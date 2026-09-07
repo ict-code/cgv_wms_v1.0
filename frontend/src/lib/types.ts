@@ -1,3 +1,7 @@
+import type { ComponentType } from "react";
+
+export type IconComponent = ComponentType<{ className?: string }>;
+
 export interface Paginated<T> {
   data: T[];
   total: number;

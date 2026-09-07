@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import NotificationsRounded from "@mui/icons-material/NotificationsRounded";
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications, notificationEntityHref } from "@/hooks/use-notifications";
 import { formatDateTime } from "@/lib/utils";
 import { cn } from "@/lib/utils";
@@ -36,10 +36,10 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="relative flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-slate-100 hover:text-foreground"
+        className="relative flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-slate-100 hover:text-foreground"
         title="Notifications"
       >
-        <Bell className="h-4.5 w-4.5" strokeWidth={2} />
+        <NotificationsRounded className="h-4.5 w-4.5" />
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-danger)] px-1 text-[10px] font-semibold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -47,7 +47,7 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-80 rounded-md border border-[var(--color-border)] bg-white shadow-lg">
+        <div className="absolute right-0 top-full z-30 mt-1 w-80 rounded-lg border border-[var(--color-border)] bg-white shadow-[var(--shadow-elevation)]">
           <div className="flex items-center justify-between border-b border-[var(--color-border)] px-3 py-2">
             <p className="text-sm font-semibold text-foreground">Notifications</p>
             {unreadCount > 0 && (

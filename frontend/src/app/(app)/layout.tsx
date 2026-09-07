@@ -3,8 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { Topbar } from "@/components/layout/topbar";
-import { NavBar } from "@/components/layout/nav-bar";
+import { AppBar } from "@/components/layout/app-bar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -22,8 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Topbar />
-      <NavBar />
+      <AppBar />
       <main className="flex-1 overflow-x-auto p-6">{children}</main>
     </div>
   );

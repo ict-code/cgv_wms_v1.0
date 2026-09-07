@@ -1,7 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, PackageX, Timer } from "lucide-react";
+import AlertTriangle from "@mui/icons-material/WarningAmberRounded";
+import CheckCircle2 from "@mui/icons-material/CheckCircleRounded";
+import PackageX from "@mui/icons-material/ProductionQuantityLimitsRounded";
+import Timer from "@mui/icons-material/TimerRounded";
 import { apiClient } from "@/lib/api-client";
 import type { DashboardData } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

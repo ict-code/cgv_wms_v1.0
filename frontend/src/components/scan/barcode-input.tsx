@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ScanLine } from "lucide-react";
+import ScanLine from "@mui/icons-material/QrCodeScannerRounded";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { BarcodeScannerDialog } from "./barcode-scanner-dialog";

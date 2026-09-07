@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { IconComponent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function IconButton({
@@ -8,7 +8,7 @@ export function IconButton({
   title,
   disabled,
 }: {
-  icon: LucideIcon;
+  icon: IconComponent;
   onClick?: () => void;
   variant?: "default" | "danger";
   title?: string;
@@ -21,11 +21,11 @@ export function IconButton({
       disabled={disabled}
       title={title}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-40",
+        "flex h-7 w-7 items-center justify-center rounded-lg transition-colors disabled:pointer-events-none disabled:opacity-40",
         variant === "danger" ? "text-[var(--color-muted)] hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)]" : "text-[var(--color-muted)] hover:bg-slate-100 hover:text-foreground",
       )}
     >
-      <Icon className="h-4 w-4" strokeWidth={2} />
+      <Icon className="h-4 w-4" />
     </button>
   );
 }

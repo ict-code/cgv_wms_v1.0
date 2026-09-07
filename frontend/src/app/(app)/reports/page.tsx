@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileDown, FileSpreadsheet, FileText } from "lucide-react";
+import FileDown from "@mui/icons-material/FileDownloadRounded";
+import FileSpreadsheet from "@mui/icons-material/TableChartRounded";
+import FileText from "@mui/icons-material/DescriptionRounded";
 import { apiClient } from "@/lib/api-client";
 import type { InventoryBalance, InventoryTransaction } from "@/lib/types";
 import { useWarehouses } from "@/hooks/use-reference-data";

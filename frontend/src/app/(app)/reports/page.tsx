@@ -152,7 +152,7 @@ export default function ReportsPage() {
   const issuancesByEmpQuery = useQuery({
     queryKey: ["/reports/issuances-by-employee", warehouseId, dateFrom, dateTo],
     queryFn: async () =>
-      (await apiClient.get<{ employee: { id: string; fullname: string; employeeCode: string } | null; issuanceCount: number; totalValue: string }[]>(
+      (await apiClient.get<{ employee: { id: string; fullname: string } | null; issuanceCount: number; totalValue: string }[]>(
         "/reports/issuances-by-employee",
         { params: commonFilters },
       )).data,
@@ -477,10 +477,7 @@ export default function ReportsPage() {
                   ))
                 : issuancesByEmpQuery.data?.map((entry, i) => (
                     <TableRow key={entry.employee?.id ?? i}>
-                      <TableCell>
-                        {entry.employee?.fullname ?? "-"}
-                        {entry.employee?.employeeCode && <span className="ml-1 text-xs text-slate-400">({entry.employee.employeeCode})</span>}
-                      </TableCell>
+                      <TableCell>{entry.employee?.fullname ?? "-"}</TableCell>
                       <TableCell>{entry.issuanceCount}</TableCell>
                       <TableCell>{formatCurrency(entry.totalValue)}</TableCell>
                     </TableRow>

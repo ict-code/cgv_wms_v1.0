@@ -17,10 +17,7 @@ export class EmployeesService {
     const where: Prisma.EmployeeWhereInput = {
       ...(query.departmentId && { departmentId: query.departmentId }),
       ...(query.search && {
-        OR: [
-          { fullname: { contains: query.search, mode: 'insensitive' } },
-          { employeeCode: { contains: query.search, mode: 'insensitive' } },
-        ],
+        fullname: { contains: query.search, mode: 'insensitive' },
       }),
     };
     const [data, total] = await Promise.all([
@@ -59,8 +56,8 @@ export class EmployeesService {
   async exportCsv(): Promise<string> {
     const rows = await this.prisma.employee.findMany({ include: { department: true }, orderBy: { fullname: 'asc' } });
     return toCsv(
-      ['employeeCode', 'fullname', 'departmentCode', 'position', 'email', 'phone', 'status'],
-      rows.map((r) => [r.employeeCode, r.fullname, r.department?.code ?? '', r.position, r.email, r.phone, r.status]),
+      ['full_name', 'email', 'position', 'office_code', 'status'],
+      rows.map((r) => [r.fullname, r.email, r.position, r.department?.code ?? '', r.status]),
     );
   }
 
@@ -68,21 +65,19 @@ export class EmployeesService {
     const rows = await this.prisma.employee.findMany({ include: { department: true }, orderBy: { fullname: 'asc' } });
     return toXlsx(
       'Employees',
-      ['Employee Code', 'Full Name', 'Department Code', 'Position', 'Email', 'Phone', 'Status'],
-      rows.map((r) => [r.employeeCode, r.fullname, r.department?.code ?? '', r.position, r.email, r.phone, r.status]),
+      ['full_name', 'email', 'position', 'office_code', 'status'],
+      rows.map((r) => [r.fullname, r.email, r.position, r.department?.code ?? '', r.status]),
     );
   }
 
   async importCsv(text: string): Promise<{ created: number; updated: number }> {
     const { rows, col } = parseImportCsv(text);
-    const codeIdx = col('employeeCode');
-    const nameIdx = col('fullname');
-    const deptIdx = col('departmentCode');
+    const nameIdx = col('full_name');
+    const deptIdx = col('office_code');
     const positionIdx = col('position');
     const emailIdx = col('email');
-    const phoneIdx = col('phone');
     const statusIdx = col('status');
-    if (codeIdx === -1 || nameIdx === -1) throw new BadRequestException('CSV must include "employeeCode" and "fullname" columns');
+    if (nameIdx === -1) throw new BadRequestException('CSV must include a "full_name" column');
 
     const departments = await this.prisma.department.findMany();
     const departmentByCode = new Map(departments.map((d) => [d.code, d]));
@@ -92,29 +87,25 @@ export class EmployeesService {
     const get = (r: string[], idx: number) => (idx >= 0 ? r[idx]?.trim() || null : null);
     const records = rows.map((r, i) => {
       const rowNum = i + 2;
-      const employeeCode = r[codeIdx]?.trim() ?? '';
       const fullname = r[nameIdx]?.trim() ?? '';
       const deptCode = deptIdx >= 0 ? r[deptIdx]?.trim() : '';
       const status = parseStatus(statusIdx >= 0 ? r[statusIdx] : undefined, rowNum, errors);
-      if (!employeeCode) errors.push(`Row ${rowNum}: employeeCode is required`);
-      if (!fullname) errors.push(`Row ${rowNum}: fullname is required`);
+      if (!fullname) errors.push(`Row ${rowNum}: full_name is required`);
       let departmentId: string | null = null;
       if (deptCode) {
         const department = departmentByCode.get(deptCode);
-        if (!department) errors.push(`Row ${rowNum}: department "${deptCode}" not found`);
+        if (!department) errors.push(`Row ${rowNum}: office "${deptCode}" not found`);
         else departmentId = department.id;
       }
-      if (employeeCode) {
-        if (seen.has(employeeCode)) errors.push(`Row ${rowNum}: duplicate employeeCode "${employeeCode}" in file`);
-        seen.add(employeeCode);
+      if (fullname) {
+        if (seen.has(fullname)) errors.push(`Row ${rowNum}: duplicate full_name "${fullname}" in file`);
+        seen.add(fullname);
       }
       return {
-        employeeCode,
         fullname,
         departmentId,
         position: get(r, positionIdx),
         email: get(r, emailIdx),
-        phone: get(r, phoneIdx),
         status,
       };
     });
@@ -125,7 +116,7 @@ export class EmployeesService {
       let created = 0;
       let updated = 0;
       for (const rec of records) {
-        const existing = await tx.employee.findUnique({ where: { employeeCode: rec.employeeCode } });
+        const existing = await tx.employee.findUnique({ where: { fullname: rec.fullname } });
         if (existing) {
           await tx.employee.update({ where: { id: existing.id }, data: rec });
           updated++;

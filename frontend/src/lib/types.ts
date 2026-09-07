@@ -23,12 +23,10 @@ export interface Department {
 
 export interface Employee {
   id: string;
-  employeeCode: string;
   fullname: string;
   departmentId: string | null;
   position: string | null;
   email: string | null;
-  phone: string | null;
   status: "ACTIVE" | "INACTIVE";
   department?: Department | null;
 }

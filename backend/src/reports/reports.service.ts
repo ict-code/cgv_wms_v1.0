@@ -365,8 +365,8 @@ export class ReportsService {
         const rows = await this.issuancesByEmployee(query.dateFrom, query.dateTo, query.warehouseId);
         return {
           title: 'Issuances by Employee',
-          headers: ['Employee', 'Employee Code', 'Issuance Count', 'Total Value'],
-          rows: rows.map((r) => [r.employee?.fullname ?? '-', r.employee?.employeeCode ?? '-', r.issuanceCount, r.totalValue.toString()]),
+          headers: ['Employee', 'Issuance Count', 'Total Value'],
+          rows: rows.map((r) => [r.employee?.fullname ?? '-', r.issuanceCount, r.totalValue.toString()]),
         };
       }
       case 'stock-count-variance': {

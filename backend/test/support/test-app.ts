@@ -99,7 +99,7 @@ export async function seedFixtures(app: INestApplication, prisma: PrismaService)
   });
   const supplier = await prisma.supplier.create({ data: { code: `SUP-${suffix}`, name: `Test Supplier ${suffix}` } });
   const employee = await prisma.employee.create({
-    data: { employeeCode: `EMP-${suffix}`, fullname: `Test Employee ${suffix}`, departmentId: department.id },
+    data: { fullname: `Test Employee ${suffix}`, departmentId: department.id },
   });
 
   const [adminToken, requesterToken] = await Promise.all([login(app, `admin-${suffix}`), login(app, `requester-${suffix}`)]);

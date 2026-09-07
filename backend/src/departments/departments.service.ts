@@ -49,7 +49,7 @@ export class DepartmentsService {
     const rows = await this.prisma.department.findMany({ include: { departmentHead: true }, orderBy: { name: 'asc' } });
     return toCsv(
       ['ofc_code', 'ofc_desc', 'ofc_depthead', 'status'],
-      rows.map((r) => [r.code, r.name, r.departmentHead?.employeeCode ?? '', r.status]),
+      rows.map((r) => [r.code, r.name, r.departmentHead?.fullname ?? '', r.status]),
     );
   }
 
@@ -58,7 +58,7 @@ export class DepartmentsService {
     return toXlsx(
       'Departments',
       ['ofc_code', 'ofc_desc', 'ofc_depthead', 'status'],
-      rows.map((r) => [r.code, r.name, r.departmentHead?.employeeCode ?? '', r.status]),
+      rows.map((r) => [r.code, r.name, r.departmentHead?.fullname ?? '', r.status]),
     );
   }
 
@@ -71,7 +71,7 @@ export class DepartmentsService {
     if (codeIdx === -1 || nameIdx === -1) throw new BadRequestException('CSV must include "ofc_code" and "ofc_desc" columns');
 
     const employees = await this.prisma.employee.findMany();
-    const employeeByCode = new Map(employees.map((e) => [e.employeeCode, e]));
+    const employeeByName = new Map(employees.map((e) => [e.fullname, e]));
 
     const errors: string[] = [];
     const seen = new Set<string>();
@@ -79,14 +79,14 @@ export class DepartmentsService {
       const rowNum = i + 2;
       const code = r[codeIdx]?.trim() ?? '';
       const name = r[nameIdx]?.trim() ?? '';
-      const headCode = headIdx >= 0 ? r[headIdx]?.trim() : '';
+      const headName = headIdx >= 0 ? r[headIdx]?.trim() : '';
       const status = parseStatus(statusIdx >= 0 ? r[statusIdx] : undefined, rowNum, errors);
       if (!code) errors.push(`Row ${rowNum}: code is required`);
       if (!name) errors.push(`Row ${rowNum}: name is required`);
       let departmentHeadId: string | null = null;
-      if (headCode) {
-        const employee = employeeByCode.get(headCode);
-        if (!employee) errors.push(`Row ${rowNum}: employee "${headCode}" not found`);
+      if (headName) {
+        const employee = employeeByName.get(headName);
+        if (!employee) errors.push(`Row ${rowNum}: employee "${headName}" not found`);
         else departmentHeadId = employee.id;
       }
       if (code) {

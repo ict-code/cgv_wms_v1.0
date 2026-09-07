@@ -106,7 +106,7 @@ export function IssuanceCreateForm({ onClose }: { onClose: () => void }) {
                 value={field.value}
                 onChange={field.onChange}
                 placeholder="Select employee"
-                options={employees?.data.map((e) => ({ value: e.id, label: e.fullname, description: e.employeeCode })) ?? []}
+                options={employees?.data.map((e) => ({ value: e.id, label: e.fullname, description: e.department?.name })) ?? []}
               />
             )}
           />

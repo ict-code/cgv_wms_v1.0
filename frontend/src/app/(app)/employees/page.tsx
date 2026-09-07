@@ -26,12 +26,10 @@ import { TableCard } from "@/components/ui/table-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const schema = z.object({
-  employeeCode: z.string().min(1, "Required"),
   fullname: z.string().min(1, "Required"),
   departmentId: z.string().optional(),
   position: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -56,7 +54,7 @@ export default function EmployeesPage() {
     if (departmentFilter) rows = rows.filter((r) => r.departmentId === departmentFilter);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      rows = rows.filter((r) => r.fullname.toLowerCase().includes(q) || r.employeeCode.toLowerCase().includes(q));
+      rows = rows.filter((r) => r.fullname.toLowerCase().includes(q));
     }
     return rows;
   }, [data, search, statusFilter, departmentFilter]);
@@ -64,19 +62,17 @@ export default function EmployeesPage() {
   const { page, setPage, pageCount, paged, totalItems, pageSize } = usePagination(filtered, `${search}|${statusFilter}|${departmentFilter}`);
 
   function openCreate() {
-    reset({ employeeCode: "", fullname: "", departmentId: "", position: "", email: "", phone: "" });
+    reset({ fullname: "", departmentId: "", position: "", email: "" });
     setError(null);
     setEditingEmployee(null);
   }
 
   function openEdit(employee: Employee) {
     reset({
-      employeeCode: employee.employeeCode,
       fullname: employee.fullname,
       departmentId: employee.departmentId ?? "",
       position: employee.position ?? "",
       email: employee.email ?? "",
-      phone: employee.phone ?? "",
     });
     setError(null);
     setEditingEmployee(employee);
@@ -184,10 +180,6 @@ export default function EmployeesPage() {
       <Dialog open={isOpen} onClose={() => setEditingEmployee(undefined)} title={editingEmployee ? "Edit Employee" : "New Employee"}>
         <form onSubmit={handleSubmit((values) => saveMutation.mutate(values))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="employeeCode">Employee Code *</Label>
-            <Input id="employeeCode" {...register("employeeCode")} />
-          </div>
-          <div className="flex flex-col gap-1.5">
             <Label htmlFor="fullname">Full Name *</Label>
             <Input id="fullname" {...register("fullname")} />
           </div>
@@ -215,10 +207,6 @@ export default function EmployeesPage() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" {...register("email")} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" {...register("phone")} />
           </div>
           {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
           <div className="sm:col-span-2">
@@ -303,10 +291,7 @@ export default function EmployeesPage() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar name={employee.fullname} />
-                      <div>
-                        <p className="font-medium text-foreground">{employee.fullname}</p>
-                        <p className="text-xs text-[var(--color-muted)]">{employee.employeeCode}</p>
-                      </div>
+                      <p className="font-medium text-foreground">{employee.fullname}</p>
                     </div>
                   </TableCell>
                   <TableCell>{employee.department?.name ?? "-"}</TableCell>

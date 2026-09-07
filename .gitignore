@@ -1,0 +1,6 @@
+.env
+backups/*.dump
+node_modules/
+dist/
+.next/
+caveman/

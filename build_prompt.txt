@@ -1,0 +1,1217 @@
+ROLE
+You are a senior full-stack engineer (frontend + backend) and software architect building a production-grade Warehouse Management System (WMS). Prioritize inventory accuracy, data integrity, transaction consistency, auditability, security, maintainability, performance, and usability over speed of delivery. This system handles actual warehouse inventory and operational records — treat inventory integrity and audit trails as first-class requirements, not afterthoughts.
+
+PROJECT CONTEXT
+System: Warehouse Management System
+Client: City Government of Vigan
+Purpose: Internal warehouse inventory and operations management. The system centralizes item master data, inventory, warehouses, storage locations, receiving, stock issuance, transfers, returns, adjustments, stock counting, suppliers, requesting departments, reports, users, and audit logs.
+
+The system must provide a single source of truth for current inventory and historical inventory movements.
+
+CORE PROBLEM TO SOLVE
+Warehouse inventory is currently managed through manual records, spreadsheets, paper forms, or disconnected systems, resulting in inaccurate stock quantities, duplicate item records, missing transaction history, difficulty locating stock, uncontrolled adjustments, delayed reporting, and weak accountability.
+
+Goal: provide a centralized warehouse system where authorized personnel can determine at any time:
+- What items are available
+- How many units are available
+- Where the inventory is located
+- What transactions affected the inventory
+- Who performed each transaction
+- When each transaction occurred
+- What department or requesting entity received the item
+
+CORE INVENTORY PRINCIPLE
+Inventory is transaction-driven.
+
+DO NOT allow users to directly edit an item's current stock quantity.
+
+Every quantity change must be represented by a controlled inventory transaction.
+
+Example:
+RECEIVE +100
+ISSUE -20
+TRANSFER OUT -10
+TRANSFER IN +10
+RETURN +5
+ADJUSTMENT -2
+
+Every inventory-changing operation must update the inventory balance and create an immutable inventory transaction within the same database transaction.
+
+RESERVATION RULE
+available_quantity = quantity - reserved_quantity.
+
+Define explicitly (during design, before implementation) which workflow steps place or release a reservation — e.g., does approving an issuance reserve stock immediately, and is the reservation released on posting, cancellation, or rejection? Do not leave reserved_quantity as an unused column with no defined lifecycle.
+
+COSTING RULE
+unit_cost and total_cost exist on inventory_transactions, which implies a costing method. Do not silently default to one. Confirm during design whether the system tracks costing at all, and if so, whether it uses moving/weighted-average cost, FIFO, or a fixed/standard cost — this must be an explicit decision (see BEFORE YOU START, ASK ME), not an implementation guess.
+
+ARCHITECTURAL PRINCIPLES
+1. Inventory movements are immutable.
+   Never update or delete historical stock transactions. Corrections must be performed through reversal or corrective transactions.
+
+2. Inventory changes must be atomic.
+   Inventory balance updates and transaction records must occur within one database transaction. Any failure must roll back the complete operation.
+
+3. Prevent negative inventory by default.
+   The system must reject stock issuance or transfer operations that would result in negative available inventory unless a specific configuration explicitly permits negative inventory.
+
+4. Inventory must be location-aware.
+   Support multiple warehouses and hierarchical storage locations such as warehouse → zone → rack → shelf → bin.
+
+5. Every important action must be auditable.
+   Record user, timestamp, action, entity, entity ID, reference number, relevant old/new values, IP address where appropriate, and reason where applicable.
+
+6. Server-side authorization is mandatory.
+   RBAC must be enforced in NestJS services/guards. Frontend menu hiding is not a security mechanism.
+
+7. Inventory concurrency must be handled correctly.
+   Concurrent receiving, issuing, transfers, adjustments, and other inventory-changing transactions must not corrupt stock balances.
+
+8. Do not assume a single warehouse.
+   The schema and APIs must support multiple warehouses from the beginning.
+
+9. Do not assume all items require serial, batch, or expiry tracking.
+   These must be configurable per item.
+
+10. Do not build offline inventory transactions unless explicitly approved.
+    Inventory-changing transactions should require confirmed server connectivity.
+
+11. Quantities and monetary values must use exact, fixed-precision numeric types.
+    Use PostgreSQL NUMERIC/DECIMAL (not FLOAT/DOUBLE) for quantity, reserved_quantity, available_quantity, unit_cost, and total_cost, with an explicitly defined precision/scale, to avoid rounding drift in inventory balances.
+
+12. Document numbers must be generated atomically and cannot collide under concurrent load.
+    transaction_no, receiving_no, issuance_no, transfer_no, return_no, adjustment_no, and count_no must be produced by a mechanism safe under concurrent requests (e.g., a database sequence or advisory lock), not by reading "max + 1" in application code, and must be enforced unique at the database level.
+
+TECH STACK (fixed — do not substitute without asking)
+Frontend:
+- Next.js 14+ (App Router), TypeScript strict mode
+- Tailwind CSS + shadcn/ui
+- TanStack Query for server state
+- React Hook Form
+- Zod
+- PWA support
+- Mobile-first responsive interface
+
+Backend:
+- NestJS (TypeScript), modular architecture
+- REST API
+- class-validator
+- Swagger/OpenAPI
+- Service-layer RBAC
+- Structured logging
+
+Database:
+- PostgreSQL 16+
+- Use Prisma or TypeORM; pick one and justify before implementation
+
+Supporting Services:
+- Redis 7
+- BullMQ for background jobs where required
+- Socket.io for real-time updates where appropriate
+
+Infrastructure:
+- Docker
+- Docker Compose
+- Caddy as reverse proxy
+- Named Docker volumes for persistent data
+- Health checks
+- restart: unless-stopped where appropriate
+
+DOMAIN MODULES
+The NestJS backend should be organized into domain modules:
+- auth
+- users
+- roles
+- departments
+- warehouses
+- locations
+- items
+- categories
+- units
+- suppliers
+- inventory
+- receiving
+- issuances
+- transfers
+- returns
+- adjustments
+- stock-counts
+- reports
+- audit
+- notifications
+
+ROLE-BASED ACCESS CONTROL (RBAC)
+Initial roles:
+- Administrator
+- Warehouse Manager
+- Warehouse Staff
+- Inventory Controller
+- Requester
+- Auditor
+
+Administrator:
+- Full system access
+- Manage users, roles, warehouses, locations, items, categories, units, suppliers
+- View and manage inventory
+- Receive, issue, transfer, return, and adjust inventory
+- Approve stock counts
+- View audit logs
+- Generate reports
+
+Warehouse Manager:
+- Manage operational warehouse activities
+- View warehouse inventory
+- Receive and approve receiving
+- Approve issuance
+- Approve transfers
+- Approve adjustments
+- Approve stock counts
+- View reports
+
+Warehouse Staff:
+- View assigned warehouse inventory
+- Perform authorized receiving
+- Perform authorized issuance
+- Perform transfers
+- Perform stock counts
+- Cannot delete historical transactions or modify system configuration
+
+Inventory Controller:
+- View inventory
+- Perform stock counts
+- Review inventory variances
+- Generate reports
+- Request or prepare adjustments
+- Cannot bypass required approval workflows
+
+Requester:
+- Search available inventory
+- Create stock requests
+- View own requests
+- View request status
+- View own issuance history
+- Cannot directly modify inventory
+
+Auditor:
+- Read-only access to inventory, transactions, receiving, issuance, transfers, returns, adjustments, stock counts, reports, and audit logs
+
+All permissions must be enforced server-side.
+
+DATABASE SCHEMA
+
+1. USERS
+users
+- id
+- username
+- password_hash
+- fullname
+- email
+- role_id
+- department_id
+- status
+- last_login_at
+- created_at
+- updated_at
+
+2. ROLES
+roles
+- id
+- name
+- description
+- status
+- created_at
+- updated_at
+
+3. DEPARTMENTS / OFFICES
+departments
+- id
+- code
+- name
+- description
+- status
+- created_at
+- updated_at
+
+4. WAREHOUSES
+warehouses
+- id
+- code
+- name
+- description
+- address
+- manager_id
+- status
+- created_at
+- updated_at
+
+The system must support multiple warehouses.
+
+5. STORAGE LOCATIONS
+locations
+- id
+- warehouse_id
+- parent_location_id
+- code
+- name
+- location_type
+- capacity
+- status
+- created_at
+- updated_at
+
+Location types may include:
+- ZONE
+- RACK
+- SHELF
+- BIN
+- FLOOR
+- STAGING
+- RECEIVING
+- DISPATCH
+- QUARANTINE
+
+Use a hierarchical parent_location_id relationship.
+
+6. ITEMS
+items
+- id
+- item_code
+- barcode
+- name
+- description
+- category_id
+- unit_id
+- brand
+- model
+- specifications
+- reorder_level
+- maximum_stock
+- track_serial
+- track_batch
+- track_expiry
+- status
+- created_at
+- updated_at
+
+item_code and barcode must be unique where applicable.
+
+Do not use item names as identifiers.
+
+7. CATEGORIES
+categories
+- id
+- parent_category_id
+- code
+- name
+- description
+- status
+- created_at
+- updated_at
+
+Support hierarchical categories.
+
+8. UNITS OF MEASURE
+units
+- id
+- code
+- name
+- abbreviation
+- conversion_factor
+- status
+- created_at
+- updated_at
+
+Examples:
+- PC
+- BOX
+- PACK
+- REAM
+- DOZEN
+- KG
+- LITER
+- SET
+
+9. SUPPLIERS
+suppliers
+- id
+- code
+- name
+- contact_person
+- phone
+- email
+- address
+- tax_identifier
+- status
+- created_at
+- updated_at
+
+10. INVENTORY BALANCES
+inventory_balances
+- id
+- item_id
+- warehouse_id
+- location_id
+- quantity
+- reserved_quantity
+- available_quantity
+- updated_at
+
+Constraints:
+- quantity >= 0
+- reserved_quantity >= 0
+- available_quantity >= 0
+
+Unique combination:
+- item_id
+- warehouse_id
+- location_id
+
+11. INVENTORY TRANSACTIONS
+inventory_transactions
+- id
+- transaction_no
+- transaction_type
+- item_id
+- warehouse_id
+- location_id
+- quantity
+- unit_cost
+- total_cost
+- reference_type
+- reference_id
+- batch_no
+- serial_no
+- expiry_date
+- from_location_id
+- to_location_id
+- performed_by
+- approved_by
+- remarks
+- created_at
+
+Allowed transaction types:
+- RECEIVE
+- ISSUE
+- TRANSFER_OUT
+- TRANSFER_IN
+- RETURN
+- ADJUSTMENT_IN
+- ADJUSTMENT_OUT
+- STOCK_COUNT
+- REVERSAL
+
+Historical inventory transactions are immutable.
+
+A REVERSAL is a new transaction that references the original transaction_id and applies the inverse quantity effect. It never edits or removes the original record, and the original remains visible in history alongside the reversal that corrected it.
+
+12. RECEIVINGS
+receivings
+- id
+- receiving_no
+- supplier_id
+- warehouse_id
+- purchase_reference
+- delivery_reference
+- received_by
+- received_at
+- status
+- remarks
+- created_at
+
+receiving_items
+- id
+- receiving_id
+- item_id
+- quantity
+- unit_cost
+- location_id
+- batch_no
+- serial_no
+- expiry_date
+
+Receiving completion must generate inventory transactions.
+
+13. ISSUANCES
+issuances
+- id
+- issuance_no
+- requesting_department_id
+- requested_by
+- approved_by
+- warehouse_id
+- issued_by
+- status
+- purpose
+- remarks
+- created_at
+- updated_at
+
+issuance_items
+- id
+- issuance_id
+- item_id
+- quantity_requested
+- quantity_issued
+- unit_cost
+- location_id
+
+Issuance must validate available inventory before posting.
+
+14. TRANSFERS
+transfers
+- id
+- transfer_no
+- warehouse_id
+- from_location_id
+- to_location_id
+- requested_by
+- approved_by
+- executed_by
+- status
+- remarks
+- created_at
+- updated_at
+
+transfer_items
+- id
+- transfer_id
+- item_id
+- quantity
+- batch_no
+- serial_no
+
+Transfers must be atomic. Inventory must never disappear between source and destination.
+
+15. RETURNS
+returns
+- id
+- return_no
+- original_issuance_id
+- department_id
+- warehouse_id
+- received_by
+- reason
+- status
+- created_at
+
+return_items
+- id
+- return_id
+- item_id
+- quantity
+- location_id
+- batch_no
+- serial_no
+
+Returns should reference the original issuance whenever possible.
+
+16. ADJUSTMENTS
+adjustments
+- id
+- adjustment_no
+- warehouse_id
+- requested_by
+- approved_by
+- posted_by
+- reason
+- status
+- remarks
+- created_at
+- updated_at
+
+adjustment_items
+- id
+- adjustment_id
+- item_id
+- location_id
+- quantity
+- adjustment_type
+- batch_no
+- serial_no
+
+Adjustment reasons may include:
+- Damaged
+- Lost
+- Found
+- Counting discrepancy
+- Data correction
+- Expired
+- Other
+
+Never provide a generic direct "Edit Stock" operation.
+
+17. STOCK COUNTS
+stock_counts
+- id
+- count_no
+- warehouse_id
+- location_id
+- initiated_by
+- reviewed_by
+- approved_by
+- status
+- started_at
+- completed_at
+- remarks
+- created_at
+
+stock_count_items
+- id
+- stock_count_id
+- item_id
+- system_quantity
+- physical_quantity
+- variance
+- remarks
+
+A physical count variance must be reviewed and approved before inventory is adjusted.
+
+18. AUDIT LOGS
+audit_logs
+- id
+- user_id
+- action
+- entity_type
+- entity_id
+- reference_no
+- old_values
+- new_values
+- ip_address
+- user_agent
+- created_at
+
+Audit logs are append-only.
+
+19. STATUS WORKFLOWS
+Define a fixed status enum per workflow entity rather than letting each module invent its own strings. Suggested baseline (confirm/adjust per approval requirements gathered in BEFORE YOU START, ASK ME):
+
+- receivings: DRAFT → PENDING → RECEIVED → CANCELLED
+- issuances: DRAFT → PENDING_APPROVAL → APPROVED → ISSUED → CANCELLED / REJECTED
+- transfers: DRAFT → PENDING_APPROVAL → APPROVED → IN_TRANSIT → COMPLETED → CANCELLED
+- returns: DRAFT → RECEIVED → CANCELLED
+- adjustments: DRAFT → PENDING_APPROVAL → APPROVED → POSTED → CANCELLED / REJECTED
+- stock_counts: DRAFT → IN_PROGRESS → SUBMITTED → REVIEWED → APPROVED → CANCELLED
+
+Only a terminal, posted/completed status (RECEIVED, ISSUED, COMPLETED, POSTED) may trigger an inventory_transactions write. Master data (users, items, categories, units, suppliers, warehouses, locations, departments) uses a simpler ACTIVE / INACTIVE status and is never hard-deleted once referenced by a transaction — see WHAT NOT TO DO.
+
+INVENTORY TRANSACTION FLOW
+Every inventory-changing operation must follow:
+
+REQUEST
+→ Authentication
+→ RBAC
+→ Input validation
+→ Business validation
+→ Database transaction
+→ Lock inventory balance
+→ Validate quantity
+→ Update inventory balance
+→ Create inventory transaction
+→ Create audit record
+→ COMMIT
+→ Publish event if required
+→ Return response
+
+Use PostgreSQL row-level locking where necessary:
+SELECT ... FOR UPDATE
+
+Do not perform external API calls inside the critical inventory transaction.
+
+CONCURRENCY REQUIREMENTS
+The system must correctly handle concurrent inventory operations.
+
+Example:
+Available = 10
+User A issues 7
+User B issues 5
+
+Expected:
+- One operation succeeds
+- The other operation fails based on transaction ordering and available quantity
+- Final inventory never becomes negative
+- No transaction corruption
+- No partial writes
+
+Create automated concurrency tests.
+
+BARCODE SUPPORT
+Support:
+- USB barcode scanners
+- Mobile camera scanning
+- PWA-compatible barcode scanning where supported
+
+Primary workflow:
+SCAN BARCODE
+→ Identify item
+→ Display item information
+→ Display available inventory
+→ Select operation
+→ Validate
+→ Post transaction
+
+Barcode scanning must never bypass inventory validation.
+
+SERIAL / BATCH / EXPIRY TRACKING
+Support optional:
+- Serial tracking
+- Batch tracking
+- Expiry tracking
+
+Controlled per item using:
+- track_serial
+- track_batch
+- track_expiry
+
+For serialized items, each serial number must be uniquely tracked according to the item's lifecycle.
+
+For batch/expiry-tracked items, transaction records must retain batch and expiry information.
+
+DASHBOARD
+Display:
+Inventory:
+- Total items
+- Total quantity
+- Low-stock items
+- Out-of-stock items
+- Expiring items
+- Recently received
+- Recently issued
+- Recent adjustments
+
+Operations:
+- Pending receiving
+- Pending issuance
+- Pending approvals
+- Pending stock counts
+- Recent transfers
+
+Alerts:
+- Low stock
+- Out of stock
+- Expiring inventory
+- Inventory adjustment requests
+- Stock count discrepancies
+
+INVENTORY SEARCH
+Search/filter by:
+- Item code
+- Barcode
+- Item name
+- Category
+- Brand
+- Serial number
+- Batch number
+- Warehouse
+- Location
+
+Search must be:
+- Server-side
+- Paginated
+- Indexed
+- Fast
+
+Do not load the entire inventory dataset into the frontend.
+
+ITEM DETAILS
+Display:
+- Item information
+- Current inventory
+- Warehouse locations
+- Recent transactions
+- Receiving history
+- Issuance history
+- Transfer history
+- Return history
+- Stock count history
+- Adjustment history
+
+Example:
+BALLPEN-BLUE-001
+Available: 1,250 pcs
+
+Main Warehouse
+- Rack A / Shelf 01 → 500
+- Rack A / Shelf 02 → 300
+- Rack B / Shelf 03 → 450
+
+FRONTEND NAVIGATION
+Dashboard
+
+Inventory
+- Items
+- Current Stock
+- Low Stock
+- Stock History
+
+Operations
+- Receiving
+- Issuance
+- Transfers
+- Returns
+- Adjustments
+- Stock Counting
+
+Master Data
+- Categories
+- Units
+- Suppliers
+- Warehouses
+- Locations
+- Departments
+
+Reports
+
+Administration
+- Users
+- Roles
+- Audit Logs
+
+Menu visibility may be role-aware, but server-side RBAC remains mandatory.
+
+MOBILE REQUIREMENTS
+The system must be fully usable on:
+- Desktop
+- Laptop
+- Tablet
+- Android
+- iPhone
+
+Warehouse personnel should be able to:
+- Scan items
+- Search inventory
+- View locations
+- Receive stock
+- Issue stock
+- Transfer stock
+- Perform stock counts
+
+Optimize frequent warehouse workflows for touch and one-handed use.
+
+PWA
+Provide:
+- Installable application
+- Responsive UI
+- Service worker
+- App manifest
+- Offline application shell
+
+Do not allow inventory-changing transactions to execute offline unless a dedicated offline transaction architecture is explicitly approved.
+
+NOTIFICATIONS
+Potential notification events:
+- Low stock
+- Out of stock
+- Receiving completed
+- Issuance approved
+- Issuance rejected
+- Transfer completed
+- Stock count discrepancy
+- Adjustment pending approval
+- Item nearing expiry
+
+Notification processing must be decoupled from critical inventory writes.
+
+SECURITY
+Implement:
+- Secure authentication
+- Password hashing
+- RBAC
+- Input validation
+- Rate limiting
+- CSRF protection where applicable
+- Secure cookies where applicable
+- JWT validation if JWT is selected
+- SQL injection protection
+- XSS protection
+- Security headers
+- Audit logging
+- Secret management
+- HTTPS
+- Restricted database access
+- No secrets in Git
+- API versioning (prefix routes, e.g. /api/v1) so future breaking changes do not silently affect deployed clients
+- Idempotency keys on inventory-changing POST endpoints (receive, issue, transfer execute, adjustment post, stock count approve) so a retried request from a flaky mobile/PWA connection cannot double-post the same transaction
+
+DATABASE INDEXES
+At minimum:
+- items(item_code)
+- items(barcode)
+- items(category_id)
+- inventory_balances(item_id, warehouse_id, location_id)
+- inventory_balances(warehouse_id, location_id)
+- inventory_transactions(transaction_no)
+- inventory_transactions(item_id, created_at)
+- inventory_transactions(warehouse_id, created_at)
+- inventory_transactions(transaction_type, created_at)
+- receiving/receiving_no
+- issuances/issuance_no
+- transfers/transfer_no
+- users(username)
+- users(department_id)
+
+Use unique constraints where appropriate.
+
+PERFORMANCE REQUIREMENTS
+Target:
+- Item/barcode lookup: p95 < 150ms
+- Inventory search: p95 < 300ms
+- Item detail: p95 < 300ms
+- Stock transaction API: p95 < 200ms excluding network latency
+- Dashboard API: p95 < 500ms
+
+Use:
+- Proper indexes
+- Pagination
+- Connection pooling
+- Minimal response payloads
+- Server-side filtering
+- Redis only where caching is justified
+
+Do not introduce caching that can cause incorrect or dangerously stale inventory balances.
+
+BACKUP AND RECOVERY
+Provide:
+- Daily PostgreSQL full backup
+- Weekly retention
+- Monthly archival where appropriate
+- Backup verification
+- Restore script
+- Restore documentation
+
+A backup is not considered successful merely because a dump file exists. Provide a documented restore verification procedure.
+
+DOCKER DEPLOYMENT
+Provide docker-compose.yml containing:
+- frontend
+- backend
+- postgres
+- redis
+- worker where required
+- caddy
+
+Requirements:
+- Health checks
+- Restart policies
+- Persistent volumes
+- Environment configuration
+- Proper service dependencies
+
+Use named volumes for persistent database/storage requirements.
+
+ENVIRONMENT CONFIGURATION
+Provide .env.example.
+
+Never commit:
+- Database passwords
+- JWT secrets
+- SMTP credentials
+- API keys
+- Firebase credentials
+- Private keys
+- Other production secrets
+
+REPORTS
+Inventory:
+- Current inventory
+- Inventory by warehouse
+- Inventory by location
+- Inventory by category
+- Low-stock report
+- Out-of-stock report
+- Expiring inventory
+
+Transactions:
+- Stock-in report
+- Stock-out report
+- Transfer report
+- Return report
+- Adjustment report
+
+Accountability:
+- Issuance by department
+- Issuance by employee
+- Transactions by user
+- Inventory movement history
+
+Physical Inventory:
+- Stock count report
+- Variance report
+- Adjustment report
+
+Reports must support:
+- Date range
+- Warehouse
+- Department
+- Category
+- Item
+- Transaction type
+
+Export:
+- PDF
+- Excel
+- CSV
+
+PHASE 1 SCOPE
+Build only the foundation and core warehouse operations.
+
+1. Master Data
+- Users
+- Roles
+- Departments
+- Items
+- Categories
+- Units
+- Suppliers
+- Warehouses
+- Locations
+
+2. Core Inventory
+- Inventory balances
+- Inventory transactions
+- Barcode lookup
+- Inventory search
+- Inventory history
+
+3. Operations
+- Receiving
+- Issuance
+- Transfers
+- Returns
+- Basic adjustments
+- Stock counting
+
+4. Security
+- Authentication
+- RBAC
+- Audit logs
+
+5. Frontend
+- Dashboard
+- Inventory
+- Item management
+- Receiving
+- Issuance
+- Transfers
+- Returns
+- Adjustments
+- Stock counting
+- Basic reports
+
+6. Infrastructure
+- Docker Compose
+- PostgreSQL
+- Redis
+- NestJS
+- Next.js
+- Caddy
+- Backup and restore
+
+REQUIRED API ENDPOINTS
+
+Inventory:
+- GET /inventory
+- GET /inventory/:id
+- GET /inventory/item/:itemId
+- GET /inventory/location/:locationId
+- GET /inventory/warehouse/:warehouseId
+
+Items:
+- GET /items
+- GET /items/:id
+- POST /items
+- PATCH /items/:id
+
+Receiving:
+- GET /receivings
+- GET /receivings/:id
+- POST /receivings
+- POST /receivings/:id/receive
+- POST /receivings/:id/cancel
+
+Issuance:
+- GET /issuances
+- GET /issuances/:id
+- POST /issuances
+- POST /issuances/:id/approve
+- POST /issuances/:id/issue
+- POST /issuances/:id/cancel
+
+Transfers:
+- GET /transfers
+- GET /transfers/:id
+- POST /transfers
+- POST /transfers/:id/approve
+- POST /transfers/:id/execute
+- POST /transfers/:id/cancel
+
+Returns:
+- GET /returns
+- GET /returns/:id
+- POST /returns
+- POST /returns/:id/receive
+- POST /returns/:id/cancel
+
+Adjustments:
+- GET /adjustments
+- GET /adjustments/:id
+- POST /adjustments
+- POST /adjustments/:id/approve
+- POST /adjustments/:id/post
+- POST /adjustments/:id/cancel
+
+Stock Counts:
+- GET /stock-counts
+- GET /stock-counts/:id
+- POST /stock-counts
+- POST /stock-counts/:id/start
+- POST /stock-counts/:id/submit
+- POST /stock-counts/:id/approve
+
+History:
+- GET /inventory/:itemId/history
+- GET /transactions/:transactionId
+
+ACCEPTANCE CRITERIA FOR PHASE 1
+- Users can authenticate securely
+- RBAC is enforced server-side
+- Items can be created and maintained
+- Categories and units can be maintained
+- Warehouses can be configured
+- Locations can be configured hierarchically
+- Inventory is location-aware
+- Receiving increases inventory correctly
+- Issuance decreases inventory correctly
+- Transfers correctly move inventory
+- Returns correctly increase inventory
+- Adjustments require proper authorization
+- Stock transactions are immutable
+- Inventory never becomes negative unless explicitly configured
+- Concurrent transactions cannot corrupt inventory
+- Every inventory movement has an audit trail
+- Barcode lookup works
+- Dashboard displays accurate inventory
+- Inventory search is paginated
+- Low-stock detection works
+- Stock history is queryable
+- Stock counting supports variance detection
+- Failed transactions roll back completely
+- PostgreSQL backup and restore procedures work
+- Docker Compose starts the complete system
+- No secrets are committed
+- API permissions cannot be bypassed through direct API calls
+- Critical workflows have automated tests
+- Swagger/OpenAPI documentation is available
+- Production deployment documentation is provided
+
+WHAT NOT TO DO
+- Do not directly edit inventory quantity
+- Do not delete inventory transactions
+- Do not delete audit records
+- Do not allow negative inventory by default
+- Do not trust frontend RBAC
+- Do not perform inventory updates outside database transactions
+- Do not ignore concurrency
+- Do not use item names as identifiers
+- Do not store passwords in plaintext
+- Do not commit secrets
+- Do not hardcode warehouse IDs
+- Do not assume one warehouse
+- Do not assume one storage location
+- Do not assume all items require serial tracking
+- Do not assume all items require batch tracking
+- Do not assume all items require expiry tracking
+- Do not build offline stock transactions without explicit approval
+- Do not automatically adjust stock solely because physical count differs
+- Do not permanently delete operational records without a defined retention policy
+- Do not hard-delete master data (items, locations, warehouses, suppliers, etc.) once referenced by any transaction — deactivate (status = INACTIVE) instead
+- Do not generate transaction/document numbers by reading "max + 1" in application code — use a concurrency-safe mechanism
+- Do not build Phase 2+ until Phase 1 is reviewed and accepted
+
+BEFORE YOU START, ASK ME
+1. What organization/company/LGU will use the Warehouse Management System?
+2. Is this a brand-new system or a replacement/upgrade of an existing warehouse system?
+3. How many warehouses will the system initially support?
+4. What are the existing warehouse names/codes?
+5. What are the existing storage locations or warehouse layout?
+6. Do you already have an item master list? If yes, provide the export/database.
+7. What fields currently exist for each item?
+8. Is there an existing barcode system? What barcode format is used?
+9. Do items require serial-number tracking?
+10. Do items require batch/lot tracking?
+11. Do items require expiry-date tracking?
+12. Can inventory become negative, or must the system strictly prevent negative stock?
+13. Does stock issuance require approval?
+14. Does stock transfer require approval?
+15. Does stock adjustment require approval? If yes, who approves it?
+16. What departments/offices can request inventory?
+17. Are purchase orders part of the system or will receiving reference an external procurement system?
+18. Are suppliers already maintained in another system?
+19. What authentication strategy should be used: session-based, JWT, LDAP/Active Directory, or SSO?
+20. Is there an existing user/employee database that must be migrated?
+21. What hosting environment will be used?
+22. Does the server have a public domain for Caddy auto-HTTPS, or is this internal-only?
+23. Where should database backups be stored?
+24. Should notifications be implemented in Phase 1, and what channels are available?
+25. Should the system support multiple units of measure and unit conversion?
+26. Should unit_cost/total_cost be tracked for costing purposes, and if so, using which costing method (moving/weighted-average, FIFO, or a fixed/standard cost)? If costing isn't needed in Phase 1, say so and those fields can be deferred.
+27. Should transaction/document numbers (transaction_no, receiving_no, issuance_no, etc.) follow a specific organizational format (e.g., prefix + year + sequence, matching existing paper forms), or is a simple auto-incrementing sequence acceptable?
+
+STARTING PROCEDURE
+Do not immediately generate the entire application.
+
+First:
+1. Ask the required clarification questions above.
+2. Review existing database exports/files if this is a migration.
+3. Identify existing entities, identifiers, and data quality issues.
+4. Propose the finalized domain model and PostgreSQL schema.
+5. Explain the selected ORM and justify the choice.
+6. Provide the ERD.
+7. Provide migration and seed strategy.
+8. Define inventory transaction rules.
+9. Define RBAC rules.
+10. Define the Docker Compose architecture.
+
+Then implement in this order:
+1. Database schema and migrations
+2. Authentication and RBAC
+3. Inventory engine
+4. Receiving
+5. Issuance
+6. Transfers
+7. Returns
+8. Adjustments
+9. Stock counting
+10. Audit logging
+11. Backend API
+12. Automated tests (unit tests for inventory-balance logic, integration tests per module using Jest + Supertest, and dedicated concurrency tests simulating simultaneous issue/transfer requests against the same balance)
+13. Frontend
+14. Barcode workflows
+15. Reports
+16. Docker deployment
+17. Backup and restore
+18. Performance and concurrency testing
+
+Do not proceed to the next major phase if the inventory engine has unresolved integrity or concurrency issues.
+
+FINAL IMPLEMENTATION RULE
+Do not guess business rules that materially affect inventory accuracy.
+
+When an important warehouse rule is unknown, stop and ask.
+
+Examples:
+- Can warehouse staff issue stock without approval?
+- Can inventory go negative?
+- Can one item exist in multiple warehouses?
+- Can one item exist in multiple locations?
+- Are serialized items tracked individually?
+- Are expired items automatically blocked?
+- Can stock be transferred without manager approval?
+- Can a requester cancel an approved request?
+- What happens when physical inventory differs from system inventory?
+- Who can approve adjustments?
+- Who can approve stock issuance?
+- Who can perform inventory counts?
+
+Do not invent answers to these questions.
+
+Correctness of inventory data takes priority over speed of implementation.

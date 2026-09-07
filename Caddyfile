@@ -1,0 +1,26 @@
+{
+	# Internal-only deployment: no public domain yet, so no ACME auto-HTTPS.
+	# Once the client assigns a domain, replace :80 below with the domain name
+	# and Caddy will obtain a certificate automatically.
+	auto_https off
+}
+
+:80 {
+	handle /api/v1/* {
+		reverse_proxy backend:3001
+	}
+
+	handle /api/docs* {
+		reverse_proxy backend:3001
+	}
+
+	handle /api-json {
+		reverse_proxy backend:3001
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	encode gzip
+}

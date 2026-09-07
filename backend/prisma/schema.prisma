@@ -1,0 +1,740 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum MasterStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum LocationType {
+  ZONE
+  RACK
+  SHELF
+  BIN
+  FLOOR
+  STAGING
+  RECEIVING
+  DISPATCH
+  QUARANTINE
+}
+
+enum TransactionType {
+  RECEIVE
+  ISSUE
+  TRANSFER_OUT
+  TRANSFER_IN
+  RETURN
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  STOCK_COUNT
+  REVERSAL
+}
+
+enum ReferenceType {
+  RECEIVING
+  ISSUANCE
+  TRANSFER
+  RETURN
+  ADJUSTMENT
+  STOCK_COUNT
+  REVERSAL
+}
+
+enum ReceivingStatus {
+  DRAFT
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
+enum IssuanceStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ISSUED
+  CANCELLED
+  REJECTED
+}
+
+enum TransferStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+enum ReturnStatus {
+  DRAFT
+  RECEIVED
+  CANCELLED
+}
+
+enum AdjustmentStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  POSTED
+  CANCELLED
+  REJECTED
+}
+
+enum AdjustmentDirection {
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+}
+
+enum AdjustmentReason {
+  DAMAGED
+  LOST
+  FOUND
+  COUNTING_DISCREPANCY
+  DATA_CORRECTION
+  EXPIRED
+  OTHER
+}
+
+enum StockCountStatus {
+  DRAFT
+  IN_PROGRESS
+  SUBMITTED
+  REVIEWED
+  APPROVED
+  CANCELLED
+}
+
+// ---------- Identity / RBAC ----------
+
+model Role {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String       @unique
+  description String?
+  status      MasterStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+model Department {
+  id               String       @id @default(uuid()) @db.Uuid
+  code             String       @unique
+  name             String
+  description      String?
+  departmentHeadId String?      @map("department_head_id") @db.Uuid
+  status           MasterStatus @default(ACTIVE)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  departmentHead Employee?  @relation("DepartmentHead", fields: [departmentHeadId], references: [id])
+  employees      Employee[] @relation("EmployeeDepartment")
+  users          User[]
+  issuances      Issuance[]
+  returns        Return[]
+
+  @@map("departments")
+}
+
+model Employee {
+  id           String       @id @default(uuid()) @db.Uuid
+  employeeCode String       @unique @map("employee_code")
+  fullname     String
+  departmentId String?      @map("department_id") @db.Uuid
+  position     String?
+  email        String?
+  phone        String?
+  status       MasterStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  department        Department?  @relation("EmployeeDepartment", fields: [departmentId], references: [id])
+  headOfDepartments Department[] @relation("DepartmentHead")
+  issuances         Issuance[]
+
+  @@map("employees")
+}
+
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  username     String       @unique
+  passwordHash String       @map("password_hash")
+  fullname     String
+  email        String       @unique
+  roleId       String       @map("role_id") @db.Uuid
+  departmentId String?      @map("department_id") @db.Uuid
+  status       MasterStatus @default(ACTIVE)
+  lastLoginAt  DateTime?    @map("last_login_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  role       Role        @relation(fields: [roleId], references: [id])
+  department Department? @relation(fields: [departmentId], references: [id])
+
+  warehousesManaged     Warehouse[]            @relation("WarehouseManager")
+  auditLogs             AuditLog[]
+  receivingsReceived    Receiving[]            @relation("ReceivingReceivedBy")
+  issuancesRequested    Issuance[]             @relation("IssuanceRequestedBy")
+  issuancesApproved     Issuance[]             @relation("IssuanceApprovedBy")
+  issuancesIssued       Issuance[]             @relation("IssuanceIssuedBy")
+  transfersRequested    Transfer[]             @relation("TransferRequestedBy")
+  transfersApproved     Transfer[]             @relation("TransferApprovedBy")
+  transfersExecuted     Transfer[]             @relation("TransferExecutedBy")
+  returnsReceived       Return[]               @relation("ReturnReceivedBy")
+  adjustmentsRequested  Adjustment[]           @relation("AdjustmentRequestedBy")
+  adjustmentsApproved   Adjustment[]           @relation("AdjustmentApprovedBy")
+  adjustmentsPosted     Adjustment[]           @relation("AdjustmentPostedBy")
+  stockCountsInitiated  StockCount[]           @relation("StockCountInitiatedBy")
+  stockCountsReviewed   StockCount[]           @relation("StockCountReviewedBy")
+  stockCountsApproved   StockCount[]           @relation("StockCountApprovedBy")
+  transactionsPerformed InventoryTransaction[] @relation("TransactionPerformedBy")
+  transactionsApproved  InventoryTransaction[] @relation("TransactionApprovedBy")
+  notifications         Notification[]
+
+  @@map("users")
+}
+
+// ---------- Warehousing ----------
+
+model Warehouse {
+  id          String       @id @default(uuid()) @db.Uuid
+  code        String       @unique
+  name        String
+  description String?
+  address     String?
+  managerId   String?      @map("manager_id") @db.Uuid
+  status      MasterStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  manager User? @relation("WarehouseManager", fields: [managerId], references: [id])
+
+  locations             Location[]
+  inventoryBalances     InventoryBalance[]
+  inventoryTransactions InventoryTransaction[]
+  receivings            Receiving[]
+  issuances             Issuance[]
+  transfers             Transfer[]
+  returns               Return[]
+  adjustments           Adjustment[]
+  stockCounts           StockCount[]
+
+  @@map("warehouses")
+}
+
+model Location {
+  id               String       @id @default(uuid()) @db.Uuid
+  warehouseId      String       @map("warehouse_id") @db.Uuid
+  parentLocationId String?      @map("parent_location_id") @db.Uuid
+  code             String
+  name             String
+  locationType     LocationType @map("location_type")
+  capacity         Decimal?     @db.Decimal(14, 3)
+  status           MasterStatus @default(ACTIVE)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  warehouse      Warehouse  @relation(fields: [warehouseId], references: [id])
+  parentLocation Location?  @relation("LocationHierarchy", fields: [parentLocationId], references: [id])
+  childLocations Location[] @relation("LocationHierarchy")
+
+  inventoryBalances     InventoryBalance[]
+  inventoryTransactions InventoryTransaction[] @relation("TransactionLocation")
+  transactionsFrom      InventoryTransaction[] @relation("TransactionFromLocation")
+  transactionsTo        InventoryTransaction[] @relation("TransactionToLocation")
+  receivingItems        ReceivingItem[]
+  issuanceItems         IssuanceItem[]
+  returnItems           ReturnItem[]
+  adjustmentItems       AdjustmentItem[]
+  stockCounts           StockCount[]
+
+  transfersFrom Transfer[] @relation("TransferFromLocation")
+  transfersTo   Transfer[] @relation("TransferToLocation")
+
+  @@unique([warehouseId, code])
+  @@map("locations")
+}
+
+// ---------- Item master ----------
+
+model Category {
+  id               String       @id @default(uuid()) @db.Uuid
+  parentCategoryId String?      @map("parent_category_id") @db.Uuid
+  code             String       @unique
+  name             String
+  description      String?
+  status           MasterStatus @default(ACTIVE)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  parentCategory  Category?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id])
+  childCategories Category[] @relation("CategoryHierarchy")
+  items           Item[]
+
+  @@map("categories")
+}
+
+model Unit {
+  id               String       @id @default(uuid()) @db.Uuid
+  code             String       @unique
+  name             String
+  abbreviation     String
+  conversionFactor Decimal      @default(1) @map("conversion_factor") @db.Decimal(14, 6)
+  status           MasterStatus @default(ACTIVE)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  items Item[]
+
+  @@map("units")
+}
+
+model Item {
+  id             String       @id @default(uuid()) @db.Uuid
+  itemCode       String       @unique @map("item_code")
+  barcode        String?      @unique
+  name           String
+  description    String?
+  categoryId     String       @map("category_id") @db.Uuid
+  unitId         String       @map("unit_id") @db.Uuid
+  brand          String?
+  model          String?
+  specifications String?
+  reorderLevel   Decimal      @default(0) @map("reorder_level") @db.Decimal(14, 3)
+  maximumStock   Decimal?     @map("maximum_stock") @db.Decimal(14, 3)
+  standardCost   Decimal      @default(0) @map("standard_cost") @db.Decimal(14, 4)
+  trackSerial    Boolean      @default(false) @map("track_serial")
+  trackBatch     Boolean      @default(false) @map("track_batch")
+  trackExpiry    Boolean      @default(false) @map("track_expiry")
+  status         MasterStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  category Category @relation(fields: [categoryId], references: [id])
+  unit     Unit     @relation(fields: [unitId], references: [id])
+
+  inventoryBalances     InventoryBalance[]
+  inventoryTransactions InventoryTransaction[]
+  receivingItems        ReceivingItem[]
+  issuanceItems         IssuanceItem[]
+  transferItems         TransferItem[]
+  returnItems           ReturnItem[]
+  adjustmentItems       AdjustmentItem[]
+  stockCountItems       StockCountItem[]
+
+  @@index([categoryId])
+  @@map("items")
+}
+
+model Supplier {
+  id            String       @id @default(uuid()) @db.Uuid
+  code          String       @unique
+  name          String
+  contactPerson String?      @map("contact_person")
+  phone         String?
+  email         String?
+  address       String?
+  taxIdentifier String?      @map("tax_identifier")
+  status        MasterStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  receivings Receiving[]
+
+  @@map("suppliers")
+}
+
+// ---------- Inventory core ----------
+
+model InventoryBalance {
+  id                String   @id @default(uuid()) @db.Uuid
+  itemId            String   @map("item_id") @db.Uuid
+  warehouseId       String   @map("warehouse_id") @db.Uuid
+  locationId        String   @map("location_id") @db.Uuid
+  quantity          Decimal  @default(0) @db.Decimal(14, 3)
+  reservedQuantity  Decimal  @default(0) @map("reserved_quantity") @db.Decimal(14, 3)
+  availableQuantity Decimal  @default(0) @map("available_quantity") @db.Decimal(14, 3)
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  item      Item      @relation(fields: [itemId], references: [id])
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  location  Location  @relation(fields: [locationId], references: [id])
+
+  @@unique([itemId, warehouseId, locationId])
+  @@index([warehouseId, locationId])
+  @@map("inventory_balances")
+}
+
+model InventoryTransaction {
+  id              String          @id @default(uuid()) @db.Uuid
+  transactionNo   String          @unique @map("transaction_no")
+  transactionType TransactionType @map("transaction_type")
+  itemId          String          @map("item_id") @db.Uuid
+  warehouseId     String          @map("warehouse_id") @db.Uuid
+  locationId      String          @map("location_id") @db.Uuid
+  quantity        Decimal         @db.Decimal(14, 3)
+  unitCost        Decimal         @default(0) @map("unit_cost") @db.Decimal(14, 4)
+  totalCost       Decimal         @default(0) @map("total_cost") @db.Decimal(16, 4)
+  referenceType   ReferenceType   @map("reference_type")
+  referenceId     String          @map("reference_id") @db.Uuid
+  batchNo         String?         @map("batch_no")
+  serialNo        String?         @map("serial_no")
+  expiryDate      DateTime?       @map("expiry_date") @db.Date
+  fromLocationId  String?         @map("from_location_id") @db.Uuid
+  toLocationId    String?         @map("to_location_id") @db.Uuid
+  reversalOfId    String?         @unique @map("reversal_of_id") @db.Uuid
+  performedBy     String          @map("performed_by") @db.Uuid
+  approvedBy      String?         @map("approved_by") @db.Uuid
+  remarks         String?
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  item            Item                  @relation(fields: [itemId], references: [id])
+  warehouse       Warehouse             @relation(fields: [warehouseId], references: [id])
+  location        Location              @relation("TransactionLocation", fields: [locationId], references: [id])
+  fromLocation    Location?             @relation("TransactionFromLocation", fields: [fromLocationId], references: [id])
+  toLocation      Location?             @relation("TransactionToLocation", fields: [toLocationId], references: [id])
+  performedByUser User                  @relation("TransactionPerformedBy", fields: [performedBy], references: [id])
+  approvedByUser  User?                 @relation("TransactionApprovedBy", fields: [approvedBy], references: [id])
+  reversalOf      InventoryTransaction? @relation("TransactionReversal", fields: [reversalOfId], references: [id])
+  reversedBy      InventoryTransaction? @relation("TransactionReversal")
+
+  @@index([itemId, createdAt])
+  @@index([warehouseId, createdAt])
+  @@index([transactionType, createdAt])
+  @@map("inventory_transactions")
+}
+
+// ---------- Receiving ----------
+
+model Receiving {
+  id                String          @id @default(uuid()) @db.Uuid
+  receivingNo       String          @unique @map("receiving_no")
+  supplierId        String          @map("supplier_id") @db.Uuid
+  warehouseId       String          @map("warehouse_id") @db.Uuid
+  purchaseReference String?         @map("purchase_reference")
+  deliveryReference String?         @map("delivery_reference")
+  receivedBy        String?         @map("received_by") @db.Uuid
+  receivedAt        DateTime?       @map("received_at")
+  status            ReceivingStatus @default(DRAFT)
+  remarks           String?
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  supplier  Supplier        @relation(fields: [supplierId], references: [id])
+  warehouse Warehouse       @relation(fields: [warehouseId], references: [id])
+  receiver  User?           @relation("ReceivingReceivedBy", fields: [receivedBy], references: [id])
+  items     ReceivingItem[]
+
+  @@map("receivings")
+}
+
+model ReceivingItem {
+  id          String    @id @default(uuid()) @db.Uuid
+  receivingId String    @map("receiving_id") @db.Uuid
+  itemId      String    @map("item_id") @db.Uuid
+  quantity    Decimal   @db.Decimal(14, 3)
+  unitCost    Decimal   @default(0) @map("unit_cost") @db.Decimal(14, 4)
+  locationId  String    @map("location_id") @db.Uuid
+  batchNo     String?   @map("batch_no")
+  serialNo    String?   @map("serial_no")
+  expiryDate  DateTime? @map("expiry_date") @db.Date
+
+  receiving Receiving @relation(fields: [receivingId], references: [id], onDelete: Cascade)
+  item      Item      @relation(fields: [itemId], references: [id])
+  location  Location  @relation(fields: [locationId], references: [id])
+
+  @@map("receiving_items")
+}
+
+// ---------- Issuance ----------
+
+model Issuance {
+  id                     String         @id @default(uuid()) @db.Uuid
+  issuanceNo             String         @unique @map("issuance_no")
+  requestingDepartmentId String         @map("requesting_department_id") @db.Uuid
+  employeeId             String?        @map("employee_id") @db.Uuid
+  requestedBy            String         @map("requested_by") @db.Uuid
+  approvedBy             String?        @map("approved_by") @db.Uuid
+  warehouseId            String         @map("warehouse_id") @db.Uuid
+  issuedBy               String?        @map("issued_by") @db.Uuid
+  status                 IssuanceStatus @default(DRAFT)
+  purpose                String?
+  remarks                String?
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
+
+  requestingDepartment Department     @relation(fields: [requestingDepartmentId], references: [id])
+  employee             Employee?      @relation(fields: [employeeId], references: [id])
+  requester            User           @relation("IssuanceRequestedBy", fields: [requestedBy], references: [id])
+  approver             User?          @relation("IssuanceApprovedBy", fields: [approvedBy], references: [id])
+  issuer               User?          @relation("IssuanceIssuedBy", fields: [issuedBy], references: [id])
+  warehouse            Warehouse      @relation(fields: [warehouseId], references: [id])
+  items                IssuanceItem[]
+  returns              Return[]
+
+  @@map("issuances")
+}
+
+model IssuanceItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  issuanceId        String   @map("issuance_id") @db.Uuid
+  itemId            String   @map("item_id") @db.Uuid
+  quantityRequested Decimal  @map("quantity_requested") @db.Decimal(14, 3)
+  quantityIssued    Decimal? @map("quantity_issued") @db.Decimal(14, 3)
+  unitCost          Decimal  @default(0) @map("unit_cost") @db.Decimal(14, 4)
+  locationId        String   @map("location_id") @db.Uuid
+
+  issuance Issuance @relation(fields: [issuanceId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+
+  @@map("issuance_items")
+}
+
+// ---------- Transfers ----------
+
+model Transfer {
+  id             String         @id @default(uuid()) @db.Uuid
+  transferNo     String         @unique @map("transfer_no")
+  warehouseId    String         @map("warehouse_id") @db.Uuid
+  fromLocationId String         @map("from_location_id") @db.Uuid
+  toLocationId   String         @map("to_location_id") @db.Uuid
+  requestedBy    String         @map("requested_by") @db.Uuid
+  approvedBy     String?        @map("approved_by") @db.Uuid
+  executedBy     String?        @map("executed_by") @db.Uuid
+  status         TransferStatus @default(DRAFT)
+  remarks        String?
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  warehouse    Warehouse      @relation(fields: [warehouseId], references: [id])
+  fromLocation Location       @relation("TransferFromLocation", fields: [fromLocationId], references: [id])
+  toLocation   Location       @relation("TransferToLocation", fields: [toLocationId], references: [id])
+  requester    User           @relation("TransferRequestedBy", fields: [requestedBy], references: [id])
+  approver     User?          @relation("TransferApprovedBy", fields: [approvedBy], references: [id])
+  executor     User?          @relation("TransferExecutedBy", fields: [executedBy], references: [id])
+  items        TransferItem[]
+
+  @@map("transfers")
+}
+
+model TransferItem {
+  id         String  @id @default(uuid()) @db.Uuid
+  transferId String  @map("transfer_id") @db.Uuid
+  itemId     String  @map("item_id") @db.Uuid
+  quantity   Decimal @db.Decimal(14, 3)
+  batchNo    String? @map("batch_no")
+  serialNo   String? @map("serial_no")
+
+  transfer Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@map("transfer_items")
+}
+
+// ---------- Returns ----------
+
+model Return {
+  id                 String       @id @default(uuid()) @db.Uuid
+  returnNo           String       @unique @map("return_no")
+  originalIssuanceId String?      @map("original_issuance_id") @db.Uuid
+  departmentId       String       @map("department_id") @db.Uuid
+  warehouseId        String       @map("warehouse_id") @db.Uuid
+  receivedBy         String?      @map("received_by") @db.Uuid
+  reason             String?
+  status             ReturnStatus @default(DRAFT)
+  createdAt          DateTime     @default(now()) @map("created_at")
+
+  originalIssuance Issuance?    @relation(fields: [originalIssuanceId], references: [id])
+  department       Department   @relation(fields: [departmentId], references: [id])
+  warehouse        Warehouse    @relation(fields: [warehouseId], references: [id])
+  receiver         User?        @relation("ReturnReceivedBy", fields: [receivedBy], references: [id])
+  items            ReturnItem[]
+
+  @@map("returns")
+}
+
+model ReturnItem {
+  id         String  @id @default(uuid()) @db.Uuid
+  returnId   String  @map("return_id") @db.Uuid
+  itemId     String  @map("item_id") @db.Uuid
+  quantity   Decimal @db.Decimal(14, 3)
+  locationId String  @map("location_id") @db.Uuid
+  batchNo    String? @map("batch_no")
+  serialNo   String? @map("serial_no")
+
+  return   Return   @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+
+  @@map("return_items")
+}
+
+// ---------- Adjustments ----------
+
+model Adjustment {
+  id           String           @id @default(uuid()) @db.Uuid
+  adjustmentNo String           @unique @map("adjustment_no")
+  warehouseId  String           @map("warehouse_id") @db.Uuid
+  requestedBy  String           @map("requested_by") @db.Uuid
+  approvedBy   String?          @map("approved_by") @db.Uuid
+  postedBy     String?          @map("posted_by") @db.Uuid
+  reason       AdjustmentReason
+  status       AdjustmentStatus @default(DRAFT)
+  remarks      String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  warehouse Warehouse        @relation(fields: [warehouseId], references: [id])
+  requester User             @relation("AdjustmentRequestedBy", fields: [requestedBy], references: [id])
+  approver  User?            @relation("AdjustmentApprovedBy", fields: [approvedBy], references: [id])
+  poster    User?            @relation("AdjustmentPostedBy", fields: [postedBy], references: [id])
+  items     AdjustmentItem[]
+
+  @@map("adjustments")
+}
+
+model AdjustmentItem {
+  id             String              @id @default(uuid()) @db.Uuid
+  adjustmentId   String              @map("adjustment_id") @db.Uuid
+  itemId         String              @map("item_id") @db.Uuid
+  locationId     String              @map("location_id") @db.Uuid
+  quantity       Decimal             @db.Decimal(14, 3)
+  adjustmentType AdjustmentDirection @map("adjustment_type")
+  batchNo        String?             @map("batch_no")
+  serialNo       String?             @map("serial_no")
+
+  adjustment Adjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+  item       Item       @relation(fields: [itemId], references: [id])
+  location   Location   @relation(fields: [locationId], references: [id])
+
+  @@map("adjustment_items")
+}
+
+// ---------- Stock counts ----------
+
+model StockCount {
+  id          String           @id @default(uuid()) @db.Uuid
+  countNo     String           @unique @map("count_no")
+  warehouseId String           @map("warehouse_id") @db.Uuid
+  locationId  String           @map("location_id") @db.Uuid
+  initiatedBy String           @map("initiated_by") @db.Uuid
+  reviewedBy  String?          @map("reviewed_by") @db.Uuid
+  approvedBy  String?          @map("approved_by") @db.Uuid
+  status      StockCountStatus @default(DRAFT)
+  startedAt   DateTime?        @map("started_at")
+  completedAt DateTime?        @map("completed_at")
+  remarks     String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  warehouse Warehouse        @relation(fields: [warehouseId], references: [id])
+  location  Location         @relation(fields: [locationId], references: [id])
+  initiator User             @relation("StockCountInitiatedBy", fields: [initiatedBy], references: [id])
+  reviewer  User?            @relation("StockCountReviewedBy", fields: [reviewedBy], references: [id])
+  approver  User?            @relation("StockCountApprovedBy", fields: [approvedBy], references: [id])
+  items     StockCountItem[]
+
+  @@map("stock_counts")
+}
+
+model StockCountItem {
+  id               String  @id @default(uuid()) @db.Uuid
+  stockCountId     String  @map("stock_count_id") @db.Uuid
+  itemId           String  @map("item_id") @db.Uuid
+  systemQuantity   Decimal @map("system_quantity") @db.Decimal(14, 3)
+  physicalQuantity Decimal @map("physical_quantity") @db.Decimal(14, 3)
+  variance         Decimal @db.Decimal(14, 3)
+  remarks          String?
+
+  stockCount StockCount @relation(fields: [stockCountId], references: [id], onDelete: Cascade)
+  item       Item       @relation(fields: [itemId], references: [id])
+
+  @@map("stock_count_items")
+}
+
+// ---------- Notifications ----------
+
+enum NotificationType {
+  LOW_STOCK
+  OUT_OF_STOCK
+  EXPIRING_SOON
+  RECEIVING_COMPLETED
+  ISSUANCE_APPROVED
+  ISSUANCE_REJECTED
+  ISSUANCE_ISSUED
+  TRANSFER_COMPLETED
+  STOCK_COUNT_DISCREPANCY
+  ADJUSTMENT_PENDING_APPROVAL
+}
+
+model Notification {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String           @map("user_id") @db.Uuid
+  type        NotificationType
+  title       String
+  message     String
+  entityType  String?          @map("entity_type")
+  entityId    String?          @map("entity_id")
+  referenceNo String?          @map("reference_no")
+  readAt      DateTime?        @map("read_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// ---------- Idempotency ----------
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model IdempotencyKey {
+  id           String            @id @default(uuid()) @db.Uuid
+  key          String            @unique
+  endpoint     String
+  userId       String            @map("user_id") @db.Uuid
+  status       IdempotencyStatus @default(IN_PROGRESS)
+  statusCode   Int?              @map("status_code")
+  responseBody Json?             @map("response_body")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  @@index([createdAt])
+  @@map("idempotency_keys")
+}
+
+// ---------- Audit ----------
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  referenceNo String?  @map("reference_no")
+  oldValues   Json?    @map("old_values")
+  newValues   Json?    @map("new_values")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}

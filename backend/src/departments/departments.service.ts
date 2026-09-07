@@ -48,7 +48,7 @@ export class DepartmentsService {
   async exportCsv(): Promise<string> {
     const rows = await this.prisma.department.findMany({ include: { departmentHead: true }, orderBy: { name: 'asc' } });
     return toCsv(
-      ['code', 'name', 'departmentHeadCode', 'status'],
+      ['ofc_code', 'ofc_desc', 'ofc_depthead', 'status'],
       rows.map((r) => [r.code, r.name, r.departmentHead?.employeeCode ?? '', r.status]),
     );
   }
@@ -57,18 +57,18 @@ export class DepartmentsService {
     const rows = await this.prisma.department.findMany({ include: { departmentHead: true }, orderBy: { name: 'asc' } });
     return toXlsx(
       'Departments',
-      ['Code', 'Name', 'Department Head Code', 'Status'],
+      ['ofc_code', 'ofc_desc', 'ofc_depthead', 'status'],
       rows.map((r) => [r.code, r.name, r.departmentHead?.employeeCode ?? '', r.status]),
     );
   }
 
   async importCsv(text: string): Promise<{ created: number; updated: number }> {
     const { rows, col } = parseImportCsv(text);
-    const codeIdx = col('code');
-    const nameIdx = col('name');
-    const headIdx = col('departmentHeadCode');
+    const codeIdx = col('ofc_code');
+    const nameIdx = col('ofc_desc');
+    const headIdx = col('ofc_depthead');
     const statusIdx = col('status');
-    if (codeIdx === -1 || nameIdx === -1) throw new BadRequestException('CSV must include "code" and "name" columns');
+    if (codeIdx === -1 || nameIdx === -1) throw new BadRequestException('CSV must include "ofc_code" and "ofc_desc" columns');
 
     const employees = await this.prisma.employee.findMany();
     const employeeByCode = new Map(employees.map((e) => [e.employeeCode, e]));

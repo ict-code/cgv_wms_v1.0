@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import CheckRounded from "@mui/icons-material/CheckRounded";
-import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
-import SearchRounded from "@mui/icons-material/SearchRounded";
+import { Check, ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ComboboxOption {
@@ -87,16 +85,16 @@ export function Combobox({
         disabled={disabled}
         onClick={toggleOpen}
         className={cn(
-          "flex h-8 w-full items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] bg-white px-3 py-1 text-left text-sm shadow-xs outline-none focus-visible:border-brand-500 focus-visible:ring-2 focus-visible:ring-brand-100 disabled:opacity-50",
+          "flex h-9 w-full items-center justify-between gap-2 rounded-md border border-[var(--color-border)] bg-white px-3 py-1 text-left text-sm shadow-xs outline-none focus-visible:border-brand-500 focus-visible:ring-2 focus-visible:ring-brand-100 disabled:opacity-50",
         )}
       >
         <span className={cn("truncate", !selected && "text-slate-400")}>{selected ? selected.label : placeholder}</span>
-        <ExpandMoreRounded className="h-4 w-4 shrink-0 text-slate-400" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full min-w-56 overflow-hidden rounded-lg border border-[var(--color-border)] bg-white shadow-[var(--shadow-elevation)]">
+        <div className="absolute z-50 mt-1 w-full min-w-56 overflow-hidden rounded-md border border-[var(--color-border)] bg-white shadow-lg">
           <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-2.5 py-2">
-            <SearchRounded className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+            <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
             <input
               ref={inputRef}
               value={query}
@@ -126,7 +124,7 @@ export function Combobox({
                 )}
               >
                 <span className="truncate">{opt.label}</span>
-                {opt.value === value && <CheckRounded className="h-3.5 w-3.5 shrink-0" />}
+                {opt.value === value && <Check className="h-3.5 w-3.5 shrink-0" />}
               </button>
             ))}
             {filtered.length === 0 && <p className="px-3 py-2 text-sm text-slate-400">{emptyMessage}</p>}

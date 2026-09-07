@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import Search from "@mui/icons-material/SearchRounded";
+import { Search } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useItems, useLocations, useWarehouses } from "@/hooks/use-reference-data";
 import { Button } from "@/components/ui/button";

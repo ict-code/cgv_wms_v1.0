@@ -2,9 +2,7 @@
 
 import { useRef, useState } from "react";
 import { AxiosError } from "axios";
-import Download from "@mui/icons-material/DownloadRounded";
-import FileSpreadsheet from "@mui/icons-material/TableChartRounded";
-import Upload from "@mui/icons-material/UploadRounded";
+import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { downloadFile } from "@/lib/download";
 import { Button } from "@/components/ui/button";

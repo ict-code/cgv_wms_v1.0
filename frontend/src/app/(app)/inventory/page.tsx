@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import FileSpreadsheet from "@mui/icons-material/TableChartRounded";
+import { FileSpreadsheet } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import type { InventoryBalance, Paginated, Warehouse } from "@/lib/types";
 import { usePagination } from "@/hooks/use-pagination";

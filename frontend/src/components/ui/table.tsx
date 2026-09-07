@@ -10,7 +10,7 @@ export function Table({ className, bare, ...props }: HTMLAttributes<HTMLTableEle
     );
   }
   return (
-    <div className="w-full overflow-x-auto rounded-lg border border-[var(--color-border)] bg-white shadow-[var(--shadow-elevation)]">
+    <div className="w-full overflow-x-auto rounded-lg border border-[var(--color-border)] bg-white shadow-xs">
       <table className={cn("w-full text-sm", className)} {...props} />
     </div>
   );
@@ -31,12 +31,12 @@ export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowEle
 export function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cn("px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]", className)}
+      className={cn("px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]", className)}
       {...props}
     />
   );
 }
 
 export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("px-3 py-2", className)} {...props} />;
+  return <td className={cn("px-3 py-2.5", className)} {...props} />;
 }

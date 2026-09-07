@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import CloseRounded from "@mui/icons-material/CloseRounded";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Dialog({
@@ -42,19 +42,19 @@ export function Dialog({
       <div
         role="dialog"
         aria-modal="true"
-        className={cn("relative flex max-h-[85vh] w-full max-w-lg flex-col rounded-lg border border-[var(--color-border)] bg-white shadow-[var(--shadow-elevation)]", className)}
+        className={cn("relative flex max-h-[85vh] w-full max-w-lg flex-col rounded-lg border border-[var(--color-border)] bg-white shadow-xl", className)}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] px-5 py-3.5">
           <h2 className="text-sm font-semibold text-foreground">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-muted)] hover:bg-slate-100 hover:text-foreground"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-slate-100 hover:text-foreground"
           >
-            <CloseRounded className="h-4 w-4" />
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="overflow-y-auto p-4">{children}</div>
+        <div className="overflow-y-auto p-5">{children}</div>
       </div>
     </div>
   );

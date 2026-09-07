@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import ScanLine from "@mui/icons-material/QrCodeScannerRounded";
+import { ScanLine } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useItems, useLocations, useSuppliers, useWarehouses } from "@/hooks/use-reference-data";
 import { Button } from "@/components/ui/button";

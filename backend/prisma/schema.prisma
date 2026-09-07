@@ -146,12 +146,13 @@ model Department {
 }
 
 model Employee {
-  id           String       @id @default(uuid()) @db.Uuid
-  fullname     String       @unique
-  departmentId String?      @map("department_id") @db.Uuid
-  position     String?
-  email        String?
-  status       MasterStatus @default(ACTIVE)
+  id               String       @id @default(uuid()) @db.Uuid
+  fullname         String       @unique
+  employeeIdNumber String?      @unique @map("employee_id_number")
+  departmentId     String?      @map("department_id") @db.Uuid
+  position         String?
+  email            String?
+  status           MasterStatus @default(ACTIVE)
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
 

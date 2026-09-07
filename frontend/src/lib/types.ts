@@ -24,6 +24,7 @@ export interface Department {
 export interface Employee {
   id: string;
   fullname: string;
+  employeeIdNumber: string | null;
   departmentId: string | null;
   position: string | null;
   email: string | null;

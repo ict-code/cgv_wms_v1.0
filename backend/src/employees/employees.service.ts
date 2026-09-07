@@ -56,8 +56,8 @@ export class EmployeesService {
   async exportCsv(): Promise<string> {
     const rows = await this.prisma.employee.findMany({ include: { department: true }, orderBy: { fullname: 'asc' } });
     return toCsv(
-      ['full_name', 'email', 'position', 'office_code', 'status'],
-      rows.map((r) => [r.fullname, r.email, r.position, r.department?.code ?? '', r.status]),
+      ['full_name', 'employee_id_number', 'email', 'position', 'office_code', 'status'],
+      rows.map((r) => [r.fullname, r.employeeIdNumber, r.email, r.position, r.department?.code ?? '', r.status]),
     );
   }
 
@@ -65,14 +65,15 @@ export class EmployeesService {
     const rows = await this.prisma.employee.findMany({ include: { department: true }, orderBy: { fullname: 'asc' } });
     return toXlsx(
       'Employees',
-      ['full_name', 'email', 'position', 'office_code', 'status'],
-      rows.map((r) => [r.fullname, r.email, r.position, r.department?.code ?? '', r.status]),
+      ['full_name', 'employee_id_number', 'email', 'position', 'office_code', 'status'],
+      rows.map((r) => [r.fullname, r.employeeIdNumber, r.email, r.position, r.department?.code ?? '', r.status]),
     );
   }
 
   async importCsv(text: string): Promise<{ created: number; updated: number }> {
     const { rows, col } = parseImportCsv(text);
     const nameIdx = col('full_name');
+    const idNumberIdx = col('employee_id_number');
     const deptIdx = col('office_code');
     const positionIdx = col('position');
     const emailIdx = col('email');
@@ -84,10 +85,12 @@ export class EmployeesService {
 
     const errors: string[] = [];
     const seen = new Set<string>();
+    const seenIdNumbers = new Set<string>();
     const get = (r: string[], idx: number) => (idx >= 0 ? r[idx]?.trim() || null : null);
     const records = rows.map((r, i) => {
       const rowNum = i + 2;
       const fullname = r[nameIdx]?.trim() ?? '';
+      const employeeIdNumber = get(r, idNumberIdx);
       const deptCode = deptIdx >= 0 ? r[deptIdx]?.trim() : '';
       const status = parseStatus(statusIdx >= 0 ? r[statusIdx] : undefined, rowNum, errors);
       if (!fullname) errors.push(`Row ${rowNum}: full_name is required`);
@@ -101,8 +104,13 @@ export class EmployeesService {
         if (seen.has(fullname)) errors.push(`Row ${rowNum}: duplicate full_name "${fullname}" in file`);
         seen.add(fullname);
       }
+      if (employeeIdNumber) {
+        if (seenIdNumbers.has(employeeIdNumber)) errors.push(`Row ${rowNum}: duplicate employee_id_number "${employeeIdNumber}" in file`);
+        seenIdNumbers.add(employeeIdNumber);
+      }
       return {
         fullname,
+        employeeIdNumber,
         departmentId,
         position: get(r, positionIdx),
         email: get(r, emailIdx),

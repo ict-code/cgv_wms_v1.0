@@ -27,6 +27,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const schema = z.object({
   fullname: z.string().min(1, "Required"),
+  employeeIdNumber: z.string().optional(),
   departmentId: z.string().optional(),
   position: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -54,7 +55,7 @@ export default function EmployeesPage() {
     if (departmentFilter) rows = rows.filter((r) => r.departmentId === departmentFilter);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      rows = rows.filter((r) => r.fullname.toLowerCase().includes(q));
+      rows = rows.filter((r) => r.fullname.toLowerCase().includes(q) || r.employeeIdNumber?.toLowerCase().includes(q));
     }
     return rows;
   }, [data, search, statusFilter, departmentFilter]);
@@ -62,7 +63,7 @@ export default function EmployeesPage() {
   const { page, setPage, pageCount, paged, totalItems, pageSize } = usePagination(filtered, `${search}|${statusFilter}|${departmentFilter}`);
 
   function openCreate() {
-    reset({ fullname: "", departmentId: "", position: "", email: "" });
+    reset({ fullname: "", employeeIdNumber: "", departmentId: "", position: "", email: "" });
     setError(null);
     setEditingEmployee(null);
   }
@@ -70,6 +71,7 @@ export default function EmployeesPage() {
   function openEdit(employee: Employee) {
     reset({
       fullname: employee.fullname,
+      employeeIdNumber: employee.employeeIdNumber ?? "",
       departmentId: employee.departmentId ?? "",
       position: employee.position ?? "",
       email: employee.email ?? "",
@@ -184,6 +186,10 @@ export default function EmployeesPage() {
             <Input id="fullname" {...register("fullname")} />
           </div>
           <div className="flex flex-col gap-1.5">
+            <Label htmlFor="employeeIdNumber">Employee ID Number</Label>
+            <Input id="employeeIdNumber" {...register("employeeIdNumber")} />
+          </div>
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="departmentId">Department</Label>
             <Controller
               control={control}
@@ -291,7 +297,10 @@ export default function EmployeesPage() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar name={employee.fullname} />
-                      <p className="font-medium text-foreground">{employee.fullname}</p>
+                      <div>
+                        <p className="font-medium text-foreground">{employee.fullname}</p>
+                        {employee.employeeIdNumber && <p className="text-xs text-[var(--color-muted)]">{employee.employeeIdNumber}</p>}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{employee.department?.name ?? "-"}</TableCell>

@@ -5,6 +5,10 @@ export class CreateEmployeeDto {
   fullname!: string;
 
   @IsOptional()
+  @IsString()
+  employeeIdNumber?: string;
+
+  @IsOptional()
   @IsUUID()
   departmentId?: string;
 

@@ -14,7 +14,6 @@ export default function DepartmentsPage() {
       fields={[
         { name: "code", label: "Code", required: true },
         { name: "name", label: "Name", required: true },
-        { name: "description", label: "Description" },
         {
           name: "departmentHeadId",
           label: "Department Head",

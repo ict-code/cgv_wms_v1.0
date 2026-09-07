@@ -48,8 +48,8 @@ export class DepartmentsService {
   async exportCsv(): Promise<string> {
     const rows = await this.prisma.department.findMany({ include: { departmentHead: true }, orderBy: { name: 'asc' } });
     return toCsv(
-      ['code', 'name', 'description', 'departmentHeadCode', 'status'],
-      rows.map((r) => [r.code, r.name, r.description, r.departmentHead?.employeeCode ?? '', r.status]),
+      ['code', 'name', 'departmentHeadCode', 'status'],
+      rows.map((r) => [r.code, r.name, r.departmentHead?.employeeCode ?? '', r.status]),
     );
   }
 
@@ -57,8 +57,8 @@ export class DepartmentsService {
     const rows = await this.prisma.department.findMany({ include: { departmentHead: true }, orderBy: { name: 'asc' } });
     return toXlsx(
       'Departments',
-      ['Code', 'Name', 'Description', 'Department Head Code', 'Status'],
-      rows.map((r) => [r.code, r.name, r.description, r.departmentHead?.employeeCode ?? '', r.status]),
+      ['Code', 'Name', 'Department Head Code', 'Status'],
+      rows.map((r) => [r.code, r.name, r.departmentHead?.employeeCode ?? '', r.status]),
     );
   }
 
@@ -66,7 +66,6 @@ export class DepartmentsService {
     const { rows, col } = parseImportCsv(text);
     const codeIdx = col('code');
     const nameIdx = col('name');
-    const descIdx = col('description');
     const headIdx = col('departmentHeadCode');
     const statusIdx = col('status');
     if (codeIdx === -1 || nameIdx === -1) throw new BadRequestException('CSV must include "code" and "name" columns');
@@ -80,7 +79,6 @@ export class DepartmentsService {
       const rowNum = i + 2;
       const code = r[codeIdx]?.trim() ?? '';
       const name = r[nameIdx]?.trim() ?? '';
-      const description = descIdx >= 0 ? r[descIdx]?.trim() || null : null;
       const headCode = headIdx >= 0 ? r[headIdx]?.trim() : '';
       const status = parseStatus(statusIdx >= 0 ? r[statusIdx] : undefined, rowNum, errors);
       if (!code) errors.push(`Row ${rowNum}: code is required`);
@@ -95,7 +93,7 @@ export class DepartmentsService {
         if (seen.has(code)) errors.push(`Row ${rowNum}: duplicate code "${code}" in file`);
         seen.add(code);
       }
-      return { code, name, description, departmentHeadId, status };
+      return { code, name, departmentHeadId, status };
     });
 
     if (errors.length > 0) throw new BadRequestException({ message: 'Import failed', errors });

@@ -21,7 +21,7 @@ async function main() {
   const department = await prisma.department.upsert({
     where: { code: 'ADMIN' },
     update: {},
-    create: { code: 'ADMIN', name: 'Administration', description: 'Placeholder department — replace with real office list' },
+    create: { code: 'ADMIN', name: 'Administration' },
   });
 
   const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'Administrator' } });

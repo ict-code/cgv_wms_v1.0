@@ -16,7 +16,6 @@ export interface Department {
   id: string;
   code: string;
   name: string;
-  description: string | null;
   departmentHeadId: string | null;
   status: "ACTIVE" | "INACTIVE";
   departmentHead?: Employee | null;

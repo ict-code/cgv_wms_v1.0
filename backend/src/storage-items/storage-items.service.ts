@@ -24,6 +24,21 @@ async function deleteFileIfExists(filename: string | null): Promise<void> {
   }
 }
 
+// The frontend sends plain "YYYY-MM-DD" date-only strings, but Prisma's client
+// requires a full ISO-8601 datetime for a `DateTime` column (only `@db.Date`
+// columns tolerate a date-only string) — convert here rather than relaxing
+// the DTO's @IsDateString validation, which correctly accepts both shapes.
+function normalizeDates<T extends { dateStored?: string; disposalDueDate?: string }>(
+  dto: T,
+): Omit<T, 'dateStored' | 'disposalDueDate'> & { dateStored?: Date; disposalDueDate?: Date } {
+  const { dateStored, disposalDueDate, ...rest } = dto;
+  return {
+    ...rest,
+    ...(dateStored !== undefined ? { dateStored: new Date(dateStored) } : {}),
+    ...(disposalDueDate !== undefined ? { disposalDueDate: new Date(disposalDueDate) } : {}),
+  };
+}
+
 @Injectable()
 export class StorageItemsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -57,7 +72,7 @@ export class StorageItemsService {
     return saveOrConflict(() =>
       this.prisma.$transaction(async (tx) => {
         const [{ no: code }] = await tx.$queryRaw<{ no: string }[]>`SELECT generate_doc_no('STG', 'seq_storage_no') as no`;
-        return tx.storageItem.create({ data: { ...dto, code }, include: INCLUDE });
+        return tx.storageItem.create({ data: { ...normalizeDates(dto), code }, include: INCLUDE });
       }),
     );
   }
@@ -67,7 +82,7 @@ export class StorageItemsService {
     if (storageItem.status === 'DISPOSED') {
       throw new BadRequestException('Cannot edit a storage item that has already been disposed');
     }
-    return saveOrConflict(() => this.prisma.storageItem.update({ where: { id }, data: dto, include: INCLUDE }));
+    return saveOrConflict(() => this.prisma.storageItem.update({ where: { id }, data: normalizeDates(dto), include: INCLUDE }));
   }
 
   async retrieve(id: string) {

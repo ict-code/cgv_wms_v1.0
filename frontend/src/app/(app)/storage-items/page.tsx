@@ -112,13 +112,17 @@ export default function StorageItemsPage() {
     mutationFn: async (values: FormValues) => {
       const { warehouseId: _warehouseId, ...rest } = values;
       const payload = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== "" && v !== undefined));
-      if (editingItem) return (await apiClient.patch(`/storage-items/${editingItem.id}`, payload)).data;
-      return (await apiClient.post("/storage-items", payload)).data;
+      const isNew = !editingItem;
+      const item: StorageItem = editingItem
+        ? (await apiClient.patch(`/storage-items/${editingItem.id}`, payload)).data
+        : (await apiClient.post("/storage-items", payload)).data;
+      return { item, isNew };
     },
-    onSuccess: () => {
+    onSuccess: ({ item, isNew }) => {
       queryClient.invalidateQueries({ queryKey: ["/storage-items"] });
       setEditingItem(undefined);
       setError(null);
+      if (isNew) router.push(`/storage-items/${item.id}`);
     },
     onError: (err) => {
       const message = err instanceof AxiosError ? (err.response?.data?.message ?? "Failed to save") : "Failed to save";
@@ -318,6 +322,9 @@ export default function StorageItemsPage() {
             <Label>Notes</Label>
             <Textarea rows={2} {...register("notes")} />
           </div>
+          {!editingItem && (
+            <p className="text-xs text-slate-500 sm:col-span-2">You&apos;ll be able to add a photo and print a QR label on the item&apos;s page after saving.</p>
+          )}
           {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
           <div className="sm:col-span-2">
             <Button type="submit" disabled={saveMutation.isPending}>

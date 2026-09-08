@@ -41,6 +41,8 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       NODE_ENV: production
       PORT: 3001
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy

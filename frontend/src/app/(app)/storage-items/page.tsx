@@ -1,16 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { Archive, PackageOpen, Pencil, Trash2 } from "lucide-react";
+import { Archive, Eye, PackageOpen, Pencil, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import type { Paginated, StorageItem } from "@/lib/types";
 import { useWarehouses, useLocations, useDepartments, useEmployees } from "@/hooks/use-reference-data";
 import { usePagination } from "@/hooks/use-pagination";
+import { BarcodeInput } from "@/components/scan/barcode-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/ui/combobox";
 import { Pagination } from "@/components/ui/pagination";
 import { Dialog } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { IconButton } from "@/components/ui/icon-button";
 import { TableCard } from "@/components/ui/table-card";
@@ -47,10 +50,13 @@ type FormInput = z.input<typeof schema>;
 type FormValues = z.infer<typeof schema>;
 
 export default function StorageItemsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [editingItem, setEditingItem] = useState<StorageItem | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [scanCode, setScanCode] = useState("");
+  const [scanError, setScanError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "STORED" | "RETRIEVED" | "DISPOSED">("ALL");
   const { register, control, handleSubmit, watch, reset, setValue } = useForm<FormInput, unknown, FormValues>({ resolver: zodResolver(schema) });
@@ -168,6 +174,23 @@ export default function StorageItemsPage() {
     deleteMutation.mutate(item);
   }
 
+  const scanMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const trimmed = code.trim();
+      if (!trimmed) throw new Error("Enter or scan a code first");
+      return (await apiClient.get<StorageItem>(`/storage-items/barcode/${encodeURIComponent(trimmed)}`)).data;
+    },
+    onSuccess: (item) => {
+      setScanError(null);
+      setScanCode("");
+      router.push(`/storage-items/${item.id}`);
+    },
+    onError: (err) => {
+      const message = err instanceof AxiosError ? (err.response?.data?.message ?? "No storage item matches this code") : err instanceof Error ? err.message : "No storage item matches this code";
+      setScanError(Array.isArray(message) ? message.join(", ") : message);
+    },
+  });
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -183,6 +206,19 @@ export default function StorageItemsPage() {
           </button>
         </div>
       )}
+
+      <Card>
+        <CardContent className="flex flex-col gap-2">
+          <p className="text-sm text-slate-500">Scan a printed label to find its record, or type the tracking code.</p>
+          <BarcodeInput
+            value={scanCode}
+            onChange={setScanCode}
+            onSubmit={(v) => scanMutation.mutate(v)}
+            placeholder="Scan or type tracking code (e.g. STG-2026-000001)"
+          />
+          {scanError && <p className="text-sm text-red-600">{scanError}</p>}
+        </CardContent>
+      </Card>
 
       <Dialog open={isOpen} onClose={() => setEditingItem(undefined)} title={editingItem ? "Edit Storage Item" : "New Storage Item"} className="max-w-2xl">
         <form onSubmit={handleSubmit((values) => saveMutation.mutate(values))} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -347,6 +383,7 @@ export default function StorageItemsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
+                        <IconButton icon={Eye} title="View" onClick={() => router.push(`/storage-items/${item.id}`)} />
                         {isStored && <IconButton icon={Pencil} title="Edit" onClick={() => openEdit(item)} />}
                         {isStored && (
                           <IconButton icon={PackageOpen} title="Retrieve" onClick={() => retrieveMutation.mutate(item)} disabled={retrieveMutation.isPending} />

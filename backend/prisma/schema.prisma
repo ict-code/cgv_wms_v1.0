@@ -640,9 +640,11 @@ model AdjustmentItem {
 
 model StorageItem {
   id                String            @id @default(uuid()) @db.Uuid
+  code              String            @unique
   description       String
   itemType          StorageItemType   @map("item_type")
   quantity          Int               @default(1)
+  photoFilename     String?           @map("photo_filename")
   locationId        String            @map("location_id") @db.Uuid
   ownerDepartmentId String?           @map("owner_department_id") @db.Uuid
   custodianId       String?           @map("custodian_id") @db.Uuid

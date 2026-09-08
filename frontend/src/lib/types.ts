@@ -60,9 +60,11 @@ export type StorageItemStatus = "STORED" | "RETRIEVED" | "DISPOSED";
 
 export interface StorageItem {
   id: string;
+  code: string;
   description: string;
   itemType: StorageItemType;
   quantity: number;
+  photoFilename: string | null;
   locationId: string;
   ownerDepartmentId: string | null;
   custodianId: string | null;

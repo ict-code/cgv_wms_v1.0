@@ -1,4 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { promises as fs } from 'node:fs';
+import { join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { deleteOrConflict, saveOrConflict } from '../common/utils/prisma-errors.util.js';
 import { CreateStorageItemDto } from './dto/create-storage-item.dto.js';
@@ -10,6 +12,17 @@ const INCLUDE = {
   ownerDepartment: true,
   custodian: true,
 } as const;
+
+export const STORAGE_ITEM_UPLOADS_DIR = process.env.STORAGE_UPLOADS_DIR ?? join(process.cwd(), 'uploads', 'storage-items');
+
+async function deleteFileIfExists(filename: string | null): Promise<void> {
+  if (!filename) return;
+  try {
+    await fs.unlink(join(STORAGE_ITEM_UPLOADS_DIR, filename));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+}
 
 @Injectable()
 export class StorageItemsService {
@@ -34,8 +47,19 @@ export class StorageItemsService {
     return storageItem;
   }
 
+  async findByCode(code: string) {
+    const storageItem = await this.prisma.storageItem.findUnique({ where: { code }, include: INCLUDE });
+    if (!storageItem) throw new NotFoundException('No storage item matches this code');
+    return storageItem;
+  }
+
   create(dto: CreateStorageItemDto) {
-    return saveOrConflict(() => this.prisma.storageItem.create({ data: dto, include: INCLUDE }));
+    return saveOrConflict(() =>
+      this.prisma.$transaction(async (tx) => {
+        const [{ no: code }] = await tx.$queryRaw<{ no: string }[]>`SELECT generate_doc_no('STG', 'seq_storage_no') as no`;
+        return tx.storageItem.create({ data: { ...dto, code }, include: INCLUDE });
+      }),
+    );
   }
 
   async update(id: string, dto: UpdateStorageItemDto) {
@@ -70,8 +94,27 @@ export class StorageItemsService {
     });
   }
 
+  async setPhoto(id: string, filename: string) {
+    const storageItem = await this.findOne(id);
+    await deleteFileIfExists(storageItem.photoFilename);
+    return this.prisma.storageItem.update({ where: { id }, data: { photoFilename: filename }, include: INCLUDE });
+  }
+
+  async removePhoto(id: string): Promise<void> {
+    const storageItem = await this.findOne(id);
+    await deleteFileIfExists(storageItem.photoFilename);
+    await this.prisma.storageItem.update({ where: { id }, data: { photoFilename: null } });
+  }
+
+  async getPhotoPath(id: string): Promise<string> {
+    const storageItem = await this.findOne(id);
+    if (!storageItem.photoFilename) throw new NotFoundException('This storage item has no photo');
+    return join(STORAGE_ITEM_UPLOADS_DIR, storageItem.photoFilename);
+  }
+
   async remove(id: string): Promise<void> {
-    await this.findOne(id);
+    const storageItem = await this.findOne(id);
     await deleteOrConflict(() => this.prisma.storageItem.delete({ where: { id } }));
+    await deleteFileIfExists(storageItem.photoFilename);
   }
 }

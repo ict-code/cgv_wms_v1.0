@@ -38,6 +38,9 @@ const STATUS_VARIANTS: Record<string, BadgeProps["variant"]> = {
   INACTIVE: "default",
   CANCELLED: "danger",
   REJECTED: "danger",
+  STORED: "info",
+  RETRIEVED: "warning",
+  DISPOSED: "danger",
 };
 
 export function StatusBadge({ status }: { status: string }) {

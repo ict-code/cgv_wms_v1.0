@@ -24,6 +24,20 @@ enum LocationType {
   RECEIVING
   DISPATCH
   QUARANTINE
+  STORAGE
+}
+
+enum StorageItemType {
+  DOCUMENT_BOX
+  FURNITURE
+  EQUIPMENT
+  OTHER
+}
+
+enum StorageItemStatus {
+  STORED
+  RETRIEVED
+  DISPOSED
 }
 
 enum TransactionType {
@@ -142,6 +156,7 @@ model Department {
   users          User[]
   issuances      Issuance[]
   returns        Return[]
+  storageItems   StorageItem[]
 
   @@map("departments")
 }
@@ -160,6 +175,7 @@ model Employee {
   department        Department?  @relation("EmployeeDepartment", fields: [departmentId], references: [id])
   headOfDepartments Department[] @relation("DepartmentHead")
   issuances         Issuance[]
+  storageItems      StorageItem[]
 
   @@map("employees")
 }
@@ -256,6 +272,7 @@ model Location {
   returnItems           ReturnItem[]
   adjustmentItems       AdjustmentItem[]
   stockCounts           StockCount[]
+  storageItems          StorageItem[]
 
   transfersFrom Transfer[] @relation("TransferFromLocation")
   transfersTo   Transfer[] @relation("TransferToLocation")
@@ -617,6 +634,32 @@ model AdjustmentItem {
   location   Location   @relation(fields: [locationId], references: [id])
 
   @@map("adjustment_items")
+}
+
+// ---------- Storage items (non-consumable safekeeping) ----------
+
+model StorageItem {
+  id                String            @id @default(uuid()) @db.Uuid
+  description       String
+  itemType          StorageItemType   @map("item_type")
+  quantity          Int               @default(1)
+  locationId        String            @map("location_id") @db.Uuid
+  ownerDepartmentId String?           @map("owner_department_id") @db.Uuid
+  custodianId       String?           @map("custodian_id") @db.Uuid
+  dateStored        DateTime          @default(now()) @map("date_stored")
+  disposalDueDate   DateTime?         @map("disposal_due_date") @db.Date
+  status            StorageItemStatus @default(STORED)
+  retrievedAt       DateTime?         @map("retrieved_at")
+  disposedAt        DateTime?         @map("disposed_at")
+  notes             String?
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  location        Location    @relation(fields: [locationId], references: [id])
+  ownerDepartment Department? @relation(fields: [ownerDepartmentId], references: [id])
+  custodian       Employee?   @relation(fields: [custodianId], references: [id])
+
+  @@map("storage_items")
 }
 
 // ---------- Stock counts ----------

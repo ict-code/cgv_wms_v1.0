@@ -42,7 +42,7 @@ export interface Warehouse {
   status: "ACTIVE" | "INACTIVE";
 }
 
-export type LocationType = "ZONE" | "RACK" | "SHELF" | "BIN" | "FLOOR" | "STAGING" | "RECEIVING" | "DISPATCH" | "QUARANTINE";
+export type LocationType = "ZONE" | "RACK" | "SHELF" | "BIN" | "FLOOR" | "STAGING" | "RECEIVING" | "DISPATCH" | "QUARANTINE" | "STORAGE";
 
 export interface Location {
   id: string;
@@ -52,6 +52,29 @@ export interface Location {
   name: string;
   locationType: LocationType;
   status: "ACTIVE" | "INACTIVE";
+  warehouse?: Warehouse;
+}
+
+export type StorageItemType = "DOCUMENT_BOX" | "FURNITURE" | "EQUIPMENT" | "OTHER";
+export type StorageItemStatus = "STORED" | "RETRIEVED" | "DISPOSED";
+
+export interface StorageItem {
+  id: string;
+  description: string;
+  itemType: StorageItemType;
+  quantity: number;
+  locationId: string;
+  ownerDepartmentId: string | null;
+  custodianId: string | null;
+  dateStored: string;
+  disposalDueDate: string | null;
+  status: StorageItemStatus;
+  retrievedAt: string | null;
+  disposedAt: string | null;
+  notes: string | null;
+  location?: Location;
+  ownerDepartment?: Department | null;
+  custodian?: Employee | null;
 }
 
 export interface Category {

@@ -10,6 +10,7 @@ const ALL_MODULES = [
   'categories', 'units', 'suppliers', 'warehouses', 'locations', 'departments', 'employees',
   'reports',
   'users', 'roles',
+  'storage-items',
 ];
 
 const ROLES = [

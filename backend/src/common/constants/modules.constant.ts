@@ -4,6 +4,7 @@ export const MODULE_KEYS = [
   'categories', 'units', 'suppliers', 'warehouses', 'locations', 'departments', 'employees',
   'reports',
   'users', 'roles',
+  'storage-items',
 ] as const;
 
 export type ModuleKey = (typeof MODULE_KEYS)[number];

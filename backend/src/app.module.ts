@@ -24,6 +24,7 @@ import { AdjustmentsModule } from './adjustments/adjustments.module.js';
 import { StockCountsModule } from './stock-counts/stock-counts.module.js';
 import { ReportsModule } from './reports/reports.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { StorageItemsModule } from './storage-items/storage-items.module.js';
 import { HealthController } from './health/health.controller.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
@@ -55,6 +56,7 @@ import { ModuleAccessGuard } from './common/guards/module-access.guard.js';
     StockCountsModule,
     ReportsModule,
     NotificationsModule,
+    StorageItemsModule,
   ],
   controllers: [HealthController],
   providers: [

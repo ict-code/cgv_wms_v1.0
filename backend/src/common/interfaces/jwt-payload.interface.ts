@@ -5,4 +5,5 @@ export interface JwtPayload {
   username: string;
   role: AppRole;
   departmentId: string | null;
+  modules: string[];
 }

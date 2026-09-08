@@ -9,10 +9,12 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { AppRole } from '../common/constants/roles.constant.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface.js';
+import { RequireModule } from '../common/decorators/require-module.decorator.js';
 
 @ApiBearerAuth()
 @ApiTags('users')
 @Roles(AppRole.ADMINISTRATOR)
+@RequireModule('users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly service: UsersService) {}

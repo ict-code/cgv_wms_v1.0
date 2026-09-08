@@ -34,7 +34,11 @@ export function NavBar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const sections = NAV_SECTIONS.filter((section) => !section.adminOnly || user?.role === "Administrator");
+  const userModules = user?.modules ?? [];
+  const sections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => !item.moduleKey || userModules.includes(item.moduleKey)),
+  })).filter((section) => section.items.length > 0);
 
   return (
     <nav ref={navRef} className="relative flex h-11 border-b border-[var(--color-border)] bg-white px-4">

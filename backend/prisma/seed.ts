@@ -4,13 +4,33 @@ import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+const ALL_MODULES = [
+  'items', 'inventory', 'scan',
+  'receiving', 'issuance', 'transfers', 'returns', 'adjustments', 'stock-counts',
+  'categories', 'units', 'suppliers', 'warehouses', 'locations', 'departments', 'employees',
+  'reports',
+  'users', 'roles',
+];
+
 const ROLES = [
-  { name: 'Administrator', description: 'Full system access' },
-  { name: 'Warehouse Manager', description: 'Manages operational warehouse activities and approvals' },
-  { name: 'Warehouse Staff', description: 'Performs authorized receiving, issuance, transfers, stock counts' },
-  { name: 'Inventory Controller', description: 'Reviews variances, prepares adjustments, generates reports' },
-  { name: 'Requester', description: 'Searches inventory and creates stock requests' },
-  { name: 'Auditor', description: 'Read-only access to inventory, transactions, and audit logs' },
+  { name: 'Administrator', description: 'Full system access', modules: ALL_MODULES },
+  {
+    name: 'Warehouse Manager',
+    description: 'Manages operational warehouse activities and approvals',
+    modules: ['items', 'inventory', 'scan', 'receiving', 'issuance', 'transfers', 'returns', 'adjustments', 'stock-counts', 'locations', 'reports'],
+  },
+  {
+    name: 'Warehouse Staff',
+    description: 'Performs authorized receiving, issuance, transfers, stock counts',
+    modules: ['items', 'inventory', 'scan', 'receiving', 'issuance', 'transfers', 'returns', 'stock-counts'],
+  },
+  {
+    name: 'Inventory Controller',
+    description: 'Reviews variances, prepares adjustments, generates reports',
+    modules: ['items', 'inventory', 'scan', 'adjustments', 'stock-counts', 'reports'],
+  },
+  { name: 'Requester', description: 'Searches inventory and creates stock requests', modules: ['items', 'inventory', 'scan', 'issuance'] },
+  { name: 'Auditor', description: 'Read-only access to inventory, transactions, and audit logs', modules: ['items', 'inventory', 'scan', 'reports'] },
 ];
 
 async function main() {

@@ -6,6 +6,7 @@ import { TransactionsReportQueryDto } from './dto/transactions-report-query.dto.
 import { ReportExportQueryDto } from './dto/report-export-query.dto.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { AppRole } from '../common/constants/roles.constant.js';
+import { RequireModule } from '../common/decorators/require-module.decorator.js';
 
 const REPORT_KEYS: ReportKey[] = [
   'current-inventory',
@@ -24,6 +25,7 @@ const CAN_VIEW_REPORTS = [AppRole.ADMINISTRATOR, AppRole.WAREHOUSE_MANAGER, AppR
 @ApiBearerAuth()
 @ApiTags('reports')
 @Roles(...CAN_VIEW_REPORTS)
+@RequireModule('reports')
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly service: ReportsService) {}

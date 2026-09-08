@@ -9,6 +9,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { AppRole } from '../common/constants/roles.constant.js';
 import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor.js';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface.js';
+import { RequireModule } from '../common/decorators/require-module.decorator.js';
 
 const CAN_COUNT = [AppRole.ADMINISTRATOR, AppRole.WAREHOUSE_MANAGER, AppRole.WAREHOUSE_STAFF, AppRole.INVENTORY_CONTROLLER];
 const CAN_REVIEW = [AppRole.ADMINISTRATOR, AppRole.WAREHOUSE_MANAGER, AppRole.INVENTORY_CONTROLLER];
@@ -16,6 +17,7 @@ const CAN_APPROVE = [AppRole.ADMINISTRATOR, AppRole.WAREHOUSE_MANAGER];
 
 @ApiBearerAuth()
 @ApiTags('stock-counts')
+@RequireModule('stock-counts')
 @Controller('stock-counts')
 export class StockCountsController {
   constructor(private readonly service: StockCountsService) {}

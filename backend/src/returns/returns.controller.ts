@@ -7,11 +7,13 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { AppRole } from '../common/constants/roles.constant.js';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface.js';
+import { RequireModule } from '../common/decorators/require-module.decorator.js';
 
 const CAN_PROCESS = [AppRole.ADMINISTRATOR, AppRole.WAREHOUSE_MANAGER, AppRole.WAREHOUSE_STAFF];
 
 @ApiBearerAuth()
 @ApiTags('returns')
+@RequireModule('returns')
 @Controller('returns')
 export class ReturnsController {
   constructor(private readonly service: ReturnsService) {}

@@ -10,6 +10,7 @@ export interface Role {
   name: string;
   description: string | null;
   status: "ACTIVE" | "INACTIVE";
+  modules: string[];
 }
 
 export interface Department {

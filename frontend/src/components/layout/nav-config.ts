@@ -27,13 +27,13 @@ export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  moduleKey?: string;
 }
 
 export interface NavSection {
   title: string | null;
   icon: LucideIcon;
   items: NavItem[];
-  adminOnly?: boolean;
 }
 
 export const NAV_SECTIONS: NavSection[] = [
@@ -42,44 +42,43 @@ export const NAV_SECTIONS: NavSection[] = [
     title: "Inventory",
     icon: Boxes,
     items: [
-      { label: "Items", href: "/items", icon: Package },
-      { label: "Current Stock", href: "/inventory", icon: Boxes },
-      { label: "Barcode Lookup", href: "/scan", icon: ScanLine },
+      { label: "Items", href: "/items", icon: Package, moduleKey: "items" },
+      { label: "Current Stock", href: "/inventory", icon: Boxes, moduleKey: "inventory" },
+      { label: "Barcode Lookup", href: "/scan", icon: ScanLine, moduleKey: "scan" },
     ],
   },
   {
     title: "Operations",
     icon: PackageCheck,
     items: [
-      { label: "Receiving", href: "/receiving", icon: PackageCheck },
-      { label: "Issuance", href: "/issuance", icon: PackageMinus },
-      { label: "Transfers", href: "/transfers", icon: ArrowLeftRight },
-      { label: "Returns", href: "/returns", icon: Undo2 },
-      { label: "Adjustments", href: "/adjustments", icon: SlidersHorizontal },
-      { label: "Stock Counting", href: "/stock-counts", icon: ClipboardList },
+      { label: "Receiving", href: "/receiving", icon: PackageCheck, moduleKey: "receiving" },
+      { label: "Issuance", href: "/issuance", icon: PackageMinus, moduleKey: "issuance" },
+      { label: "Transfers", href: "/transfers", icon: ArrowLeftRight, moduleKey: "transfers" },
+      { label: "Returns", href: "/returns", icon: Undo2, moduleKey: "returns" },
+      { label: "Adjustments", href: "/adjustments", icon: SlidersHorizontal, moduleKey: "adjustments" },
+      { label: "Stock Counting", href: "/stock-counts", icon: ClipboardList, moduleKey: "stock-counts" },
     ],
   },
   {
     title: "Master Data",
     icon: Database,
     items: [
-      { label: "Categories", href: "/categories", icon: Tags },
-      { label: "Units", href: "/units", icon: Ruler },
-      { label: "Suppliers", href: "/suppliers", icon: Building2 },
-      { label: "Warehouses", href: "/warehouses", icon: Warehouse },
-      { label: "Locations", href: "/locations", icon: MapPin },
-      { label: "Departments", href: "/departments", icon: Users },
-      { label: "Employees", href: "/employees", icon: UserRound },
+      { label: "Categories", href: "/categories", icon: Tags, moduleKey: "categories" },
+      { label: "Units", href: "/units", icon: Ruler, moduleKey: "units" },
+      { label: "Suppliers", href: "/suppliers", icon: Building2, moduleKey: "suppliers" },
+      { label: "Warehouses", href: "/warehouses", icon: Warehouse, moduleKey: "warehouses" },
+      { label: "Locations", href: "/locations", icon: MapPin, moduleKey: "locations" },
+      { label: "Departments", href: "/departments", icon: Users, moduleKey: "departments" },
+      { label: "Employees", href: "/employees", icon: UserRound, moduleKey: "employees" },
     ],
   },
-  { title: null, icon: BarChart3, items: [{ label: "Reports", href: "/reports", icon: BarChart3 }] },
+  { title: null, icon: BarChart3, items: [{ label: "Reports", href: "/reports", icon: BarChart3, moduleKey: "reports" }] },
   {
     title: "Administration",
     icon: ShieldCheck,
-    adminOnly: true,
     items: [
-      { label: "Users", href: "/users", icon: UserCog },
-      { label: "Roles", href: "/roles", icon: ShieldCheck },
+      { label: "Users", href: "/users", icon: UserCog, moduleKey: "users" },
+      { label: "Roles", href: "/roles", icon: ShieldCheck, moduleKey: "roles" },
     ],
   },
 ];

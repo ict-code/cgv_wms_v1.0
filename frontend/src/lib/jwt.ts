@@ -3,6 +3,7 @@ export interface JwtPayload {
   username: string;
   role: string;
   departmentId: string | null;
+  modules: string[];
   exp: number;
 }
 

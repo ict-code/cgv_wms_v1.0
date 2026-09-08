@@ -27,6 +27,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
 import { HealthController } from './health/health.controller.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
+import { ModuleAccessGuard } from './common/guards/module-access.guard.js';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: ModuleAccessGuard },
   ],
 })
 export class AppModule {}

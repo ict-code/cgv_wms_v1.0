@@ -119,6 +119,7 @@ model Role {
   name        String       @unique
   description String?
   status      MasterStatus @default(ACTIVE)
+  modules     String[]     @default([])
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 

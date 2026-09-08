@@ -9,6 +9,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { AppRole } from '../common/constants/roles.constant.js';
 import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor.js';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface.js';
+import { RequireModule } from '../common/decorators/require-module.decorator.js';
 
 const CAN_REQUEST = [AppRole.ADMINISTRATOR, AppRole.WAREHOUSE_MANAGER, AppRole.WAREHOUSE_STAFF, AppRole.REQUESTER];
 const CAN_APPROVE = [AppRole.ADMINISTRATOR, AppRole.WAREHOUSE_MANAGER];
@@ -16,6 +17,7 @@ const CAN_ISSUE = [AppRole.ADMINISTRATOR, AppRole.WAREHOUSE_MANAGER, AppRole.WAR
 
 @ApiBearerAuth()
 @ApiTags('issuances')
+@RequireModule('issuance')
 @Controller('issuances')
 export class IssuancesController {
   constructor(private readonly service: IssuancesService) {}

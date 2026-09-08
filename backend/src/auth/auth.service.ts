@@ -42,6 +42,7 @@ export class AuthService {
       username: user.username,
       role: user.role.name as AppRole,
       departmentId: user.departmentId,
+      modules: user.role.modules,
     };
 
     return { ...this.issueTokens(payload), user: payload };
@@ -67,6 +68,7 @@ export class AuthService {
       username: user.username,
       role: user.role.name as AppRole,
       departmentId: user.departmentId,
+      modules: user.role.modules,
     };
     return this.issueTokens(freshPayload);
   }

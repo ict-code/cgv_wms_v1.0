@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { Pencil, Power, Trash2 } from "lucide-react";
+import { KeyRound, Pencil, Power, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import type { Paginated, Role, User } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
@@ -39,17 +39,30 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
+const resetPasswordSchema = z.object({
+  newPassword: z.string().min(8, "At least 8 characters"),
+});
+type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
+
 export default function UsersPage() {
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
   const [editingUser, setEditingUser] = useState<User | null | undefined>(undefined);
+  const [resettingUser, setResettingUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL");
   const [roleFilter, setRoleFilter] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const { register, control, handleSubmit, reset } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const {
+    register: registerResetPassword,
+    handleSubmit: handleResetPasswordSubmit,
+    reset: resetResetPasswordForm,
+    formState: { errors: resetPasswordErrors },
+  } = useForm<ResetPasswordValues>({ resolver: zodResolver(resetPasswordSchema) });
   const isOpen = editingUser !== undefined;
 
   const { data: roles } = useQuery({ queryKey: ["/roles"], queryFn: async () => (await apiClient.get<Role[]>("/roles")).data });
@@ -86,6 +99,12 @@ export default function UsersPage() {
     setEditingUser(user);
   }
 
+  function openResetPassword(user: User) {
+    resetResetPasswordForm({ newPassword: "" });
+    setResetPasswordError(null);
+    setResettingUser(user);
+  }
+
   const saveMutation = useMutation({
     mutationFn: async (values: FormValues) => {
       const payload = Object.fromEntries(Object.entries(values).filter(([, v]) => v !== "" && v !== undefined));
@@ -101,6 +120,17 @@ export default function UsersPage() {
     onError: (err) => {
       const message = err instanceof AxiosError ? (err.response?.data?.message ?? "Failed to save") : err instanceof Error ? err.message : "Failed to save";
       setError(Array.isArray(message) ? message.join(", ") : message);
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ id, newPassword }: { id: string; newPassword: string }) => {
+      await apiClient.patch(`/users/${id}/password`, { newPassword });
+    },
+    onSuccess: () => setResettingUser(null),
+    onError: (err) => {
+      const message = err instanceof AxiosError ? (err.response?.data?.message ?? "Failed to reset password") : "Failed to reset password";
+      setResetPasswordError(Array.isArray(message) ? message.join(", ") : message);
     },
   });
 
@@ -243,6 +273,28 @@ export default function UsersPage() {
         </form>
       </Dialog>
 
+      <Dialog open={!!resettingUser} onClose={() => setResettingUser(null)} title={`Reset Password — ${resettingUser?.username ?? ""}`} className="max-w-md">
+        <form
+          onSubmit={handleResetPasswordSubmit((values) => {
+            if (!resettingUser) return;
+            resetPasswordMutation.mutate({ id: resettingUser.id, newPassword: values.newPassword });
+          })}
+          className="flex flex-col gap-4"
+        >
+          <div className="flex flex-col gap-1.5">
+            <Label>New Password *</Label>
+            <Input type="password" {...registerResetPassword("newPassword")} />
+            {resetPasswordErrors.newPassword && <p className="text-sm text-red-600">{resetPasswordErrors.newPassword.message}</p>}
+          </div>
+          {resetPasswordError && <p className="text-sm text-red-600">{resetPasswordError}</p>}
+          <div>
+            <Button type="submit" disabled={resetPasswordMutation.isPending}>
+              {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
       <TableCard
         title="Users"
         search={search}
@@ -334,6 +386,7 @@ export default function UsersPage() {
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <IconButton icon={Pencil} title="Edit" onClick={() => openEdit(user)} />
+                        <IconButton icon={KeyRound} title="Reset Password" onClick={() => openResetPassword(user)} />
                         <IconButton
                           icon={Power}
                           title={user.status === "ACTIVE" ? "Deactivate" : "Activate"}

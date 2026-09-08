@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
 import { PaginationQueryDto } from '../common/dto/pagination.dto.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { AppRole } from '../common/constants/roles.constant.js';
@@ -34,6 +35,12 @@ export class UsersController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.service.update(id, dto);
+  }
+
+  @Patch(':id/password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
+    return this.service.resetPassword(id, dto);
   }
 
   @Delete(':id')

@@ -5,6 +5,7 @@ import { PaginationQueryDto } from '../common/dto/pagination.dto.js';
 import { deleteOrConflict, saveOrConflict } from '../common/utils/prisma-errors.util.js';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
+import { ResetPasswordDto } from './dto/reset-password.dto.js';
 
 const SAFE_SELECT = {
   id: true,
@@ -64,6 +65,12 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto) {
     await this.findOne(id);
     return saveOrConflict(() => this.prisma.user.update({ where: { id }, data: dto, select: SAFE_SELECT }));
+  }
+
+  async resetPassword(id: string, dto: ResetPasswordDto): Promise<void> {
+    await this.findOne(id);
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await saveOrConflict(() => this.prisma.user.update({ where: { id }, data: { passwordHash } }));
   }
 
   async remove(id: string, requestingUserId: string): Promise<void> {

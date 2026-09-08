@@ -61,6 +61,11 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    title: "Storage",
+    icon: Archive,
+    items: [{ label: "Storage Items", href: "/storage-items", icon: Archive, moduleKey: "storage-items" }],
+  },
+  {
     title: "Master Data",
     icon: Database,
     items: [
@@ -74,11 +79,6 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   { title: null, icon: BarChart3, items: [{ label: "Reports", href: "/reports", icon: BarChart3, moduleKey: "reports" }] },
-  {
-    title: "Storage",
-    icon: Archive,
-    items: [{ label: "Storage Items", href: "/storage-items", icon: Archive, moduleKey: "storage-items" }],
-  },
   {
     title: "Administration",
     icon: ShieldCheck,

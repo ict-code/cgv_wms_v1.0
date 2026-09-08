@@ -34,9 +34,6 @@ const schema = z.object({
   brand: z.string().optional().or(z.literal("")),
   reorderLevel: z.coerce.number().optional(),
   standardCost: z.coerce.number().optional(),
-  trackSerial: z.boolean().optional(),
-  trackBatch: z.boolean().optional(),
-  trackExpiry: z.boolean().optional(),
 });
 type FormInput = z.input<typeof schema>;
 type FormValues = z.infer<typeof schema>;
@@ -86,9 +83,6 @@ export default function ItemsPage() {
       brand: "",
       reorderLevel: 0,
       standardCost: 0,
-      trackSerial: false,
-      trackBatch: false,
-      trackExpiry: false,
     });
     setError(null);
     setEditingItem(null);
@@ -104,9 +98,6 @@ export default function ItemsPage() {
       brand: item.brand ?? "",
       reorderLevel: Number(item.reorderLevel),
       standardCost: Number(item.standardCost),
-      trackSerial: item.trackSerial,
-      trackBatch: item.trackBatch,
-      trackExpiry: item.trackExpiry,
     });
     setError(null);
     setEditingItem(item);
@@ -271,17 +262,6 @@ export default function ItemsPage() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="standardCost">Standard Cost</Label>
             <Input id="standardCost" type="number" step="any" {...register("standardCost")} />
-          </div>
-          <div className="flex items-end gap-4 pb-1.5">
-            <label className="flex items-center gap-1.5 text-sm text-slate-700">
-              <input type="checkbox" {...register("trackSerial")} /> Serial
-            </label>
-            <label className="flex items-center gap-1.5 text-sm text-slate-700">
-              <input type="checkbox" {...register("trackBatch")} /> Batch
-            </label>
-            <label className="flex items-center gap-1.5 text-sm text-slate-700">
-              <input type="checkbox" {...register("trackExpiry")} /> Expiry
-            </label>
           </div>
           {error && <p className="text-sm text-red-600 sm:col-span-3">{error}</p>}
           <div className="sm:col-span-3">
